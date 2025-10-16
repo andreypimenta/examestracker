@@ -14,16 +14,243 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      exam_results: {
+        Row: {
+          biomarker_name: string
+          category: string | null
+          created_at: string | null
+          exam_id: string
+          id: string
+          observation: string | null
+          reference_max: number | null
+          reference_min: number | null
+          status: Database["public"]["Enums"]["biomarker_status"]
+          unit: string | null
+          value: string
+          value_numeric: number | null
+        }
+        Insert: {
+          biomarker_name: string
+          category?: string | null
+          created_at?: string | null
+          exam_id: string
+          id?: string
+          observation?: string | null
+          reference_max?: number | null
+          reference_min?: number | null
+          status: Database["public"]["Enums"]["biomarker_status"]
+          unit?: string | null
+          value: string
+          value_numeric?: number | null
+        }
+        Update: {
+          biomarker_name?: string
+          category?: string | null
+          created_at?: string | null
+          exam_id?: string
+          id?: string
+          observation?: string | null
+          reference_max?: number | null
+          reference_min?: number | null
+          status?: Database["public"]["Enums"]["biomarker_status"]
+          unit?: string | null
+          value?: string
+          value_numeric?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_results_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exams: {
+        Row: {
+          aws_file_key: string
+          aws_file_name: string
+          created_at: string | null
+          exam_date: string | null
+          id: string
+          laboratory: string | null
+          patient_id: string
+          patient_name_extracted: string | null
+          processed_at: string | null
+          processing_status:
+            | Database["public"]["Enums"]["processing_status"]
+            | null
+          raw_aws_response: Json | null
+          total_biomarkers: number | null
+          updated_at: string | null
+          upload_date: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          aws_file_key: string
+          aws_file_name: string
+          created_at?: string | null
+          exam_date?: string | null
+          id?: string
+          laboratory?: string | null
+          patient_id: string
+          patient_name_extracted?: string | null
+          processed_at?: string | null
+          processing_status?:
+            | Database["public"]["Enums"]["processing_status"]
+            | null
+          raw_aws_response?: Json | null
+          total_biomarkers?: number | null
+          updated_at?: string | null
+          upload_date?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          aws_file_key?: string
+          aws_file_name?: string
+          created_at?: string | null
+          exam_date?: string | null
+          id?: string
+          laboratory?: string | null
+          patient_id?: string
+          patient_name_extracted?: string | null
+          processed_at?: string | null
+          processing_status?:
+            | Database["public"]["Enums"]["processing_status"]
+            | null
+          raw_aws_response?: Json | null
+          total_biomarkers?: number | null
+          updated_at?: string | null
+          upload_date?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exams_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exams_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patients: {
+        Row: {
+          cpf: string | null
+          created_at: string | null
+          date_of_birth: string | null
+          email: string | null
+          full_name: string
+          id: string
+          medical_conditions: string[] | null
+          phone: string | null
+          professional_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          cpf?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          medical_conditions?: string[] | null
+          phone?: string | null
+          professional_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          cpf?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          medical_conditions?: string[] | null
+          phone?: string | null
+          professional_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patients_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          crm: string | null
+          full_name: string
+          id: string
+          specialty: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          crm?: string | null
+          full_name: string
+          id: string
+          specialty?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          crm?: string | null
+          full_name?: string
+          id?: string
+          specialty?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "professional" | "assistant"
+      biomarker_status: "normal" | "alto" | "baixo" | "alterado"
+      processing_status: "uploading" | "processing" | "completed" | "error"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +377,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "professional", "assistant"],
+      biomarker_status: ["normal", "alto", "baixo", "alterado"],
+      processing_status: ["uploading", "processing", "completed", "error"],
+    },
   },
 } as const
