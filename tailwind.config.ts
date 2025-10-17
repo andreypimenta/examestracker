@@ -64,18 +64,18 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				rest: {
-					blue: '#0077B6',
-					lightblue: '#90E0EF',
-					darkblue: '#03045E',
-					cyan: '#00B4D8',
+					blue: 'hsl(199, 85%, 38%)',
+					lightblue: 'hsl(191, 60%, 77%)',
+					darkblue: 'hsl(234, 85%, 20%)',
+					cyan: 'hsl(191, 85%, 44%)',
 					light: '#000000',
 					dark: '#FFFFFF'
 				},
 				medical: {
-					success: '#2E8540',
-					warning: '#F59E0B',
-					critical: '#DC2626',
-					info: '#0077B6'
+					success: 'hsl(142, 60%, 38%)',
+					warning: 'hsl(38, 85%, 52%)',
+					critical: 'hsl(0, 65%, 52%)',
+					info: 'hsl(199, 85%, 38%)'
 				}
 			},
 			borderRadius: {
