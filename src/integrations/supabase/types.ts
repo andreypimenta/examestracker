@@ -75,7 +75,8 @@ export type Database = {
           exam_date: string | null
           id: string
           laboratory: string | null
-          patient_id: string
+          matching_type: string | null
+          patient_id: string | null
           patient_name_extracted: string | null
           processed_at: string | null
           processing_status:
@@ -94,7 +95,8 @@ export type Database = {
           exam_date?: string | null
           id?: string
           laboratory?: string | null
-          patient_id: string
+          matching_type?: string | null
+          patient_id?: string | null
           patient_name_extracted?: string | null
           processed_at?: string | null
           processing_status?:
@@ -113,7 +115,8 @@ export type Database = {
           exam_date?: string | null
           id?: string
           laboratory?: string | null
-          patient_id?: string
+          matching_type?: string | null
+          patient_id?: string | null
           patient_name_extracted?: string | null
           processed_at?: string | null
           processing_status?:
