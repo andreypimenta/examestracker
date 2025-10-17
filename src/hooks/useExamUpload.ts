@@ -47,7 +47,25 @@ export function useExamUpload() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // 2. Get upload URL from Edge Function (proxy to AWS)
+      // 2. Detectar Content-Type correto
+      const fileExtension = file.name.toLowerCase().split('.').pop() || '';
+      let contentType = file.type;
+
+      if (!contentType || contentType === 'application/octet-stream') {
+        const typeMap: Record<string, string> = {
+          'pdf': 'application/pdf',
+          'jpg': 'image/jpeg',
+          'jpeg': 'image/jpeg',
+          'png': 'image/png',
+          'heic': 'image/heic',
+          'heif': 'image/heif',
+        };
+        contentType = typeMap[fileExtension] || 'application/octet-stream';
+      }
+
+      console.log(`[Upload] Content-Type detectado: ${contentType} para ${file.name}`);
+
+      // 3. Get upload URL from Edge Function (proxy to AWS)
       const response = await fetch(EDGE_FUNCTION_URL, {
         method: "POST",
         headers: { 
@@ -57,6 +75,7 @@ export function useExamUpload() {
         body: JSON.stringify({
           userId: patientId,
           fileName: file.name,
+          contentType: contentType,
         }),
       });
 
@@ -65,7 +84,7 @@ export function useExamUpload() {
       const { uploadUrl, fileName, fileKey } = await response.json();
       setProgress(20);
 
-      // 3. Create exam record in Supabase (status: uploading)
+      // 4. Create exam record in Supabase (status: uploading)
       const { data: exam, error: examError } = await supabase
         .from("exams")
         .insert({
@@ -82,26 +101,8 @@ export function useExamUpload() {
       if (examError) throw examError;
       setProgress(30);
 
-      // 4. Upload para S3 com Content-Type dinâmico
+      // 5. Upload para S3 com Content-Type correto
       setStatus("Enviando arquivo...");
-      
-      // Detectar tipo correto baseado no arquivo
-      const fileExtension = file.name.toLowerCase().split('.').pop() || '';
-      let contentType = file.type;
-
-      // HEIC/HEIF podem vir como "application/octet-stream" ou vazio em alguns navegadores
-      if (!contentType || contentType === 'application/octet-stream') {
-        const typeMap: Record<string, string> = {
-          'pdf': 'application/pdf',
-          'jpg': 'image/jpeg',
-          'jpeg': 'image/jpeg',
-          'png': 'image/png',
-          'heic': 'image/heic',
-          'heif': 'image/heif',
-        };
-        contentType = typeMap[fileExtension] || 'application/octet-stream';
-      }
-
       console.log(`[Upload] Enviando ${file.name} como ${contentType}`);
 
       const uploadResponse = await fetch(uploadUrl, {
@@ -110,16 +111,25 @@ export function useExamUpload() {
         headers: { "Content-Type": contentType },
       });
 
-      if (!uploadResponse.ok) throw new Error("Erro no upload do arquivo");
+      if (!uploadResponse.ok) {
+        console.error('[Upload] Erro no upload S3:', uploadResponse.status, uploadResponse.statusText);
+        // Marcar exame como erro
+        await supabase
+          .from("exams")
+          .update({ processing_status: "error" })
+          .eq("id", exam.id);
+        throw new Error("Erro no upload do arquivo");
+      }
+      console.log('[Upload] ✅ Upload S3 bem-sucedido');
       setProgress(50);
 
-      // 5. Update status to 'processing'
+      // 6. Update status to 'processing'
       await supabase
         .from("exams")
         .update({ processing_status: "processing" })
         .eq("id", exam.id);
 
-      // 6. Start polling
+      // 7. Start polling
       setStatus("Processando com IA...");
       await pollExamStatus(patientId, fileName, exam.id);
 
@@ -284,7 +294,25 @@ export function useExamUpload() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // 1. Get upload URL
+      // 1. Detectar Content-Type correto
+      const fileExtension = file.name.toLowerCase().split('.').pop() || '';
+      let contentType = file.type;
+
+      if (!contentType || contentType === 'application/octet-stream') {
+        const typeMap: Record<string, string> = {
+          'pdf': 'application/pdf',
+          'jpg': 'image/jpeg',
+          'jpeg': 'image/jpeg',
+          'png': 'image/png',
+          'heic': 'image/heic',
+          'heif': 'image/heif',
+        };
+        contentType = typeMap[fileExtension] || 'application/octet-stream';
+      }
+
+      console.log(`[AutoMatch] Content-Type detectado: ${contentType} para ${file.name}`);
+
+      // 2. Get upload URL
       const response = await fetch(EDGE_FUNCTION_URL, {
         method: "POST",
         headers: { 
@@ -294,6 +322,7 @@ export function useExamUpload() {
         body: JSON.stringify({
           userId: "temp", // Temporário
           fileName: file.name,
+          contentType: contentType,
         }),
       });
 
@@ -301,7 +330,7 @@ export function useExamUpload() {
       const { uploadUrl, fileName, fileKey } = await response.json();
       setProgress(20);
 
-      // 2. Create exam without patient_id (será preenchido depois)
+      // 3. Create exam without patient_id (será preenchido depois)
       const { data: exam, error: examError } = await supabase
         .from("exams")
         .insert({
@@ -318,22 +347,9 @@ export function useExamUpload() {
       if (examError) throw examError;
       setProgress(30);
 
-      // 3. Upload para S3
+      // 4. Upload para S3 com Content-Type correto
       setStatus("Enviando arquivo...");
-      const fileExtension = file.name.toLowerCase().split('.').pop() || '';
-      let contentType = file.type;
-
-      if (!contentType || contentType === 'application/octet-stream') {
-        const typeMap: Record<string, string> = {
-          'pdf': 'application/pdf',
-          'jpg': 'image/jpeg',
-          'jpeg': 'image/jpeg',
-          'png': 'image/png',
-          'heic': 'image/heic',
-          'heif': 'image/heif',
-        };
-        contentType = typeMap[fileExtension] || 'application/octet-stream';
-      }
+      console.log(`[AutoMatch] Enviando ${file.name} como ${contentType}`);
 
       const uploadResponse = await fetch(uploadUrl, {
         method: "PUT",
@@ -341,20 +357,28 @@ export function useExamUpload() {
         headers: { "Content-Type": contentType },
       });
 
-      if (!uploadResponse.ok) throw new Error("Erro no upload do arquivo");
+      if (!uploadResponse.ok) {
+        console.error('[AutoMatch] Erro no upload S3:', uploadResponse.status, uploadResponse.statusText);
+        await supabase
+          .from("exams")
+          .update({ processing_status: "error" })
+          .eq("id", exam.id);
+        throw new Error("Erro no upload do arquivo");
+      }
+      console.log('[AutoMatch] ✅ Upload S3 bem-sucedido');
       setProgress(50);
 
-      // 4. Update to processing
+      // 5. Update to processing
       await supabase
         .from("exams")
         .update({ processing_status: "processing" })
         .eq("id", exam.id);
 
-      // 5. Poll AWS até ter o nome do paciente extraído
+      // 6. Poll AWS até ter o nome do paciente extraído
       setStatus("Processando com IA...");
       await pollExamStatus("temp", fileName, exam.id);
 
-      // 6. Buscar dados processados
+      // 7. Buscar dados processados
       const { data: processedExam } = await supabase
         .from("exams")
         .select("patient_name_extracted")
@@ -368,7 +392,7 @@ export function useExamUpload() {
       setProgress(70);
       setStatus("Buscando paciente...");
 
-      // 7. Chamar edge function de matching
+      // 8. Chamar edge function de matching
       const matchResponse = await supabase.functions.invoke('match-patient', {
         body: {
           extractedName: processedExam.patient_name_extracted,
@@ -381,7 +405,7 @@ export function useExamUpload() {
       const matchResult = matchResponse.data;
       setProgress(80);
 
-      // 8. Processar resultado do matching
+      // 9. Processar resultado do matching
       if (matchResult.action === 'exact_match') {
         // Match automático - atualizar exame
         await supabase

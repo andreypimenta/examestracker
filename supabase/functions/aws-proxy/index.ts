@@ -37,10 +37,18 @@ serve(async (req) => {
       const body = await req.json();
       console.log('[AWS Proxy] POST request:', body);
       
+      // Receber contentType do cliente (se fornecido)
+      const contentType = body.contentType || 'application/pdf';
+      console.log('[AWS Proxy] Content-Type recebido:', contentType);
+      
       const response = await fetch(AWS_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          userId: body.userId,
+          fileName: body.fileName,
+          contentType: contentType,
+        }),
       });
 
       if (!response.ok) {
@@ -51,6 +59,7 @@ serve(async (req) => {
 
       const data = await response.json();
       console.log('[AWS Proxy] POST response:', data);
+      console.log('[AWS Proxy] Content-Type enviado para AWS:', contentType);
       
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
