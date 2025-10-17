@@ -81,12 +81,32 @@ export function useExamUpload() {
       if (examError) throw examError;
       setProgress(30);
 
-      // 4. Upload PDF to S3
+      // 4. Upload para S3 com Content-Type dinâmico
       setStatus("Enviando arquivo...");
+      
+      // Detectar tipo correto baseado no arquivo
+      const fileExtension = file.name.toLowerCase().split('.').pop() || '';
+      let contentType = file.type;
+
+      // HEIC/HEIF podem vir como "application/octet-stream" ou vazio em alguns navegadores
+      if (!contentType || contentType === 'application/octet-stream') {
+        const typeMap: Record<string, string> = {
+          'pdf': 'application/pdf',
+          'jpg': 'image/jpeg',
+          'jpeg': 'image/jpeg',
+          'png': 'image/png',
+          'heic': 'image/heic',
+          'heif': 'image/heif',
+        };
+        contentType = typeMap[fileExtension] || 'application/octet-stream';
+      }
+
+      console.log(`[Upload] Enviando ${file.name} como ${contentType}`);
+
       const uploadResponse = await fetch(uploadUrl, {
         method: "PUT",
         body: file,
-        headers: { "Content-Type": "application/pdf" },
+        headers: { "Content-Type": contentType },
       });
 
       if (!uploadResponse.ok) throw new Error("Erro no upload do arquivo");

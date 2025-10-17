@@ -13,6 +13,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useExamUpload } from "@/hooks/useExamUpload";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
 
 interface ExamUploadDialogProps {
   open: boolean;
@@ -35,9 +36,39 @@ export function ExamUploadDialog({
   const queryClient = useQueryClient();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    const pdfFile = acceptedFiles[0];
-    if (pdfFile && pdfFile.type === "application/pdf") {
-      setFile(pdfFile);
+    const uploadedFile = acceptedFiles[0];
+    
+    if (!uploadedFile) return;
+    
+    // Lista de tipos permitidos
+    const allowedTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/heic",
+      "image/heif"
+    ];
+    
+    // HEIC pode vir com type vazio ou "application/octet-stream" em alguns navegadores
+    const fileExtension = uploadedFile.name.toLowerCase().split('.').pop() || '';
+    const isAllowedExtension = ['pdf', 'jpg', 'jpeg', 'png', 'heic', 'heif'].includes(fileExtension);
+    
+    if (allowedTypes.includes(uploadedFile.type) || isAllowedExtension) {
+      setFile(uploadedFile);
+      
+      // Avisar se for HEIC (processamento pode demorar mais)
+      if (fileExtension === 'heic' || fileExtension === 'heif') {
+        toast({
+          title: "Arquivo HEIC detectado",
+          description: "Será convertido automaticamente. O processamento pode levar alguns segundos extras."
+        });
+      }
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Formato não suportado",
+        description: "Use apenas PDF, JPG, PNG ou HEIC"
+      });
     }
   }, []);
 
@@ -45,9 +76,13 @@ export function ExamUploadDialog({
     onDrop,
     accept: {
       "application/pdf": [".pdf"],
+      "image/jpeg": [".jpg", ".jpeg"],
+      "image/png": [".png"],
+      "image/heic": [".heic"],
+      "image/heif": [".heif"],
     },
     maxFiles: 1,
-    maxSize: 10 * 1024 * 1024, // 10MB
+    maxSize: 20 * 1024 * 1024, // 20MB
     disabled: uploading,
   });
 
@@ -106,10 +141,10 @@ export function ExamUploadDialog({
               <p className="text-lg font-medium mb-2">
                 {isDragActive
                   ? "Solte o arquivo aqui..."
-                  : "Arraste um PDF aqui ou clique para selecionar"}
+                  : "Arraste um documento ou imagem aqui"}
               </p>
               <p className="text-sm text-white/60">
-                Arquivos PDF até 10MB
+                PDF, JPG, PNG ou HEIC até 20MB
               </p>
             </div>
           )}
@@ -119,13 +154,45 @@ export function ExamUploadDialog({
             <div className="bg-white/5 rounded-xl p-4 border border-white/10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-rest-blue/20 rounded-lg flex items-center justify-center">
-                    <FileText className="w-6 h-6 text-rest-lightblue" />
-                  </div>
+                  {/* Preview diferente para cada tipo de arquivo */}
+                  {(() => {
+                    const fileExt = file.name.toLowerCase().split('.').pop() || '';
+                    const isImage = ['jpg', 'jpeg', 'png'].includes(fileExt);
+                    const isHEIC = ['heic', 'heif'].includes(fileExt);
+                    
+                    if (isImage) {
+                      // JPG/PNG: Mostrar thumbnail real
+                      return (
+                        <img 
+                          src={URL.createObjectURL(file)} 
+                          alt="Preview do exame" 
+                          className="w-12 h-12 object-cover rounded-lg border border-white/20"
+                        />
+                      );
+                    } else if (isHEIC) {
+                      // HEIC: Ícone especial (navegador não suporta preview nativo)
+                      return (
+                        <div className="w-12 h-12 bg-rest-cyan/20 rounded-lg flex items-center justify-center">
+                          <FileText className="w-6 h-6 text-rest-cyan" />
+                        </div>
+                      );
+                    } else {
+                      // PDF: Ícone de documento
+                      return (
+                        <div className="w-12 h-12 bg-rest-blue/20 rounded-lg flex items-center justify-center">
+                          <FileText className="w-6 h-6 text-rest-lightblue" />
+                        </div>
+                      );
+                    }
+                  })()}
+                  
                   <div>
                     <p className="font-medium">{file.name}</p>
                     <p className="text-sm text-white/60">
                       {(file.size / 1024 / 1024).toFixed(2)} MB
+                      {file.name.toLowerCase().endsWith('.pdf') && " • PDF"}
+                      {file.name.toLowerCase().match(/\.(jpg|jpeg|png)$/i) && " • Imagem"}
+                      {file.name.toLowerCase().match(/\.(heic|heif)$/i) && " • HEIC (iPhone)"}
                     </p>
                   </div>
                 </div>
