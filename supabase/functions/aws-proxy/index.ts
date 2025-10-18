@@ -45,6 +45,7 @@ serve(async (req) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: body.action || 'getUploadUrl',
           userId: body.userId,
           fileName: body.fileName,
           contentType: contentType,
