@@ -188,12 +188,18 @@ export function useExamUpload() {
           });
           if (!response.ok) throw new Error("Erro ao verificar status");
 
-          const data = await response.json();
-          console.log(`[Polling] Resposta AWS:`, data);
-          
-          const awsExam = data.exams.find(
-            (e: AWSExamData) => e.file_name === fileName
-          );
+      const data = await response.json();
+      console.log(`[Polling] Resposta AWS:`, data);
+
+      // Validar se a resposta tem o formato esperado
+      if (!data.exams || !Array.isArray(data.exams)) {
+        console.error('[Polling] Resposta inválida da AWS:', data);
+        throw new Error(`Erro na comunicação com AWS: ${data.message || 'Resposta inválida'}`);
+      }
+
+      const awsExam = data.exams.find(
+        (e: AWSExamData) => e.file_name === fileName
+      );
 
           if (!awsExam) {
             console.warn(`[Polling] Exame não encontrado na resposta AWS`);
