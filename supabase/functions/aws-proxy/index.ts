@@ -18,16 +18,41 @@ serve(async (req) => {
     const url = new URL(req.url);
     const userId = url.searchParams.get('userId');
 
-    // GET: Fetch exam status
+    // GET: Fetch exam status (fazendo POST para a Lambda)
     if (req.method === 'GET' && userId) {
       console.log('[AWS Proxy] GET request for userId:', userId);
+      console.log('[AWS Proxy] Fazendo POST para Lambda com action: getStatus');
       
-      const response = await fetch(`${AWS_API_URL}?userId=${userId}`);
+      const response = await fetch(AWS_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'getStatus',
+          userId: userId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[AWS Proxy] GET (POST) error:', response.status, errorText);
+        throw new Error(`AWS Lambda error: ${response.status}`);
+      }
+
       const data = await response.json();
+      console.log('[AWS Proxy] GET (POST) response:', data);
       
-      console.log('[AWS Proxy] GET response:', data);
+      // Se a Lambda retornou um body como string, fazer parse
+      let responseBody = data;
+      if (data.body && typeof data.body === 'string') {
+        try {
+          responseBody = JSON.parse(data.body);
+          console.log('[AWS Proxy] Body parsed successfully:', responseBody);
+        } catch (e) {
+          console.error('[AWS Proxy] Failed to parse Lambda body:', e);
+        }
+      }
       
-      return new Response(JSON.stringify(data), {
+      return new Response(JSON.stringify(responseBody), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
