@@ -62,7 +62,18 @@ serve(async (req) => {
       console.log('[AWS Proxy] POST response:', data);
       console.log('[AWS Proxy] Content-Type retornado pela AWS:', data.contentType);
       
-      return new Response(JSON.stringify(data), {
+      // Se a Lambda retornou um body como string, fazer parse
+      let responseBody = data;
+      if (data.body && typeof data.body === 'string') {
+        try {
+          responseBody = JSON.parse(data.body);
+          console.log('[AWS Proxy] Body parsed successfully:', responseBody);
+        } catch (e) {
+          console.error('[AWS Proxy] Failed to parse Lambda body:', e);
+        }
+      }
+      
+      return new Response(JSON.stringify(responseBody), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
