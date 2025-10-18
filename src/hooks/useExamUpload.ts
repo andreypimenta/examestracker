@@ -73,6 +73,7 @@ export function useExamUpload() {
           "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
         body: JSON.stringify({
+          action: "getUploadUrl",
           userId: patientId,
           fileName: file.name,
           contentType: contentType,
@@ -81,7 +82,7 @@ export function useExamUpload() {
 
       if (!response.ok) throw new Error("Erro ao gerar URL de upload");
 
-      const { uploadUrl, fileName, fileKey, contentType: awsContentType } = await response.json();
+      const { uploadUrl, s3Key, contentType: awsContentType } = await response.json();
       setProgress(20);
 
       // 4. Create exam record in Supabase (status: uploading)
@@ -90,8 +91,8 @@ export function useExamUpload() {
         .insert({
           patient_id: patientId,
           uploaded_by: user.id,
-          aws_file_key: fileKey,
-          aws_file_name: fileName,
+          aws_file_key: s3Key,
+          aws_file_name: file.name,
           exam_date: examDate?.toISOString().split("T")[0],
           processing_status: "uploading",
         })
@@ -131,7 +132,7 @@ export function useExamUpload() {
 
       // 7. Start polling
       setStatus("Processando com IA...");
-      await pollExamStatus(patientId, fileName, exam.id);
+      await pollExamStatus(patientId, file.name, exam.id);
 
       setProgress(100);
       setStatus("Concluído!");
@@ -320,6 +321,7 @@ export function useExamUpload() {
           "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
         body: JSON.stringify({
+          action: "getUploadUrl",
           userId: "temp", // Temporário
           fileName: file.name,
           contentType: contentType,
@@ -327,7 +329,7 @@ export function useExamUpload() {
       });
 
       if (!response.ok) throw new Error("Erro ao gerar URL de upload");
-      const { uploadUrl, fileName, fileKey, contentType: awsContentType } = await response.json();
+      const { uploadUrl, s3Key, contentType: awsContentType } = await response.json();
       setProgress(20);
 
       // 3. Create exam without patient_id (será preenchido depois)
@@ -336,8 +338,8 @@ export function useExamUpload() {
         .insert({
           patient_id: null, // NULL temporariamente
           uploaded_by: user.id,
-          aws_file_key: fileKey,
-          aws_file_name: fileName,
+          aws_file_key: s3Key,
+          aws_file_name: file.name,
           exam_date: examDate?.toISOString().split("T")[0],
           processing_status: "uploading",
         })
@@ -376,7 +378,7 @@ export function useExamUpload() {
 
       // 6. Poll AWS até ter o nome do paciente extraído
       setStatus("Processando com IA...");
-      await pollExamStatus("temp", fileName, exam.id);
+      await pollExamStatus("temp", file.name, exam.id);
 
       // 7. Buscar dados processados
       const { data: processedExam } = await supabase
