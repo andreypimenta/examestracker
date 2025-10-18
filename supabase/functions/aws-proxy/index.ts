@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const AWS_API_URL = "https://uretx67kbrqws3kmsjfwun2w340mtbgo.lambda-url.us-east-1.on.aws/";
+const AWS_API_URL = "https://55oeqt4sk2.execute-api.us-east-1.amazonaws.com/prod/exam-url";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
