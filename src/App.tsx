@@ -23,6 +23,7 @@ import Accessibility from "./pages/Accessibility";
 import CookiePolicy from "./pages/CookiePolicy";
 import ReturnsPolicy from "./pages/ReturnsPolicy";
 import Redirect from "./pages/Redirect";
+import GetServiceKey from "./pages/GetServiceKey";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
           <Route path="/accessibility" element={<Accessibility />} />
           <Route path="/cookie-policy" element={<CookiePolicy />} />
           <Route path="/returns-policy" element={<ReturnsPolicy />} />
+          <Route path="/get-service-key" element={<GetServiceKey />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
