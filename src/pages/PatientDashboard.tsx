@@ -220,41 +220,23 @@ export default function PatientDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-rest-black via-rest-charcoal to-rest-black p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate(`/patients/${id}`)}
-              className="border-rest-blue text-rest-blue hover:bg-rest-blue/10"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-                <Activity className="w-8 h-8 text-rest-blue" />
-                Dashboard de Acompanhamento
-              </h1>
-              <p className="text-rest-gray mt-1">
-                {patient?.full_name}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-rest-gray" />
-            <Select value={periodFilter} onValueChange={(value) => setPeriodFilter(value as PeriodFilter)}>
-              <SelectTrigger className="w-[180px] bg-card/50 border-border">
-                <SelectValue placeholder="Selecione o período" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os exames</SelectItem>
-                <SelectItem value="30">Último mês</SelectItem>
-                <SelectItem value="90">Últimos 3 meses</SelectItem>
-                <SelectItem value="180">Últimos 6 meses</SelectItem>
-                <SelectItem value="365">Último ano</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => navigate(`/patients/${id}`)}
+            className="border-rest-blue text-rest-blue hover:bg-rest-blue/10"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+              <Activity className="w-8 h-8 text-rest-blue" />
+              Dashboard de Acompanhamento
+            </h1>
+            <p className="text-rest-gray mt-1">
+              {patient?.full_name}
+            </p>
           </div>
         </div>
 
