@@ -6,6 +6,7 @@ import { ArrowLeft, Activity, Calendar } from 'lucide-react';
 import { BiomarkerChart } from '@/components/BiomarkerChart';
 import { BiomarkerCategoryCard } from '@/components/BiomarkerCategoryCard';
 import { ExamComparisonTable } from '@/components/ExamComparisonTable';
+import { BiomarkerTrackingTable } from '@/components/BiomarkerTrackingTable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState } from 'react';
 import { BIOMARKER_CATEGORIES, categorizeBiomarker, CategoryKey } from '@/utils/biomarkerCategories';
@@ -109,34 +110,57 @@ export default function PatientDashboard() {
     }
   });
 
-  // Buscar exames para tabela comparativa
-  const { data: examsComparison } = useQuery({
-    queryKey: ['patient-exams-comparison', id],
+  // Buscar todos os exames para tabela de acompanhamento longitudinal
+  const { data: trackingTableData } = useQuery({
+    queryKey: ['patient-tracking-table', id],
     queryFn: async () => {
-      const { data: exams, error: examsError } = await supabase
-        .from('exams')
-        .select('id, exam_date')
-        .eq('patient_id', id!)
-        .order('exam_date', { ascending: false })
-        .limit(3);
+      const { data, error } = await supabase
+        .from('exam_results')
+        .select(`
+          *,
+          exams!inner (
+            id,
+            exam_date,
+            laboratory,
+            patient_id
+          )
+        `)
+        .eq('exams.patient_id', id)
+        .order('exams.exam_date', { ascending: true });
+      
+      if (error) throw error;
 
-      if (examsError) throw examsError;
+      // Estruturar dados por biomarcador
+      const biomarkerMap = new Map<string, any>();
+      const examDatesSet = new Set<string>();
 
-      const examsWithResults = await Promise.all(
-        exams.map(async (exam) => {
-          const { data: results } = await supabase
-            .from('exam_results')
-            .select('biomarker_name, value, value_numeric, unit, status')
-            .eq('exam_id', exam.id);
+      data?.forEach((result: any) => {
+        const key = result.biomarker_name;
+        examDatesSet.add(result.exams.exam_date);
 
-          return {
-            exam_date: exam.exam_date,
-            results: results || []
-          };
-        })
-      );
+        if (!biomarkerMap.has(key)) {
+          biomarkerMap.set(key, {
+            biomarker_name: result.biomarker_name,
+            unit: result.unit,
+            reference_min: result.reference_min,
+            reference_max: result.reference_max,
+            category: result.category || 'Outros',
+            values: []
+          });
+        }
 
-      return examsWithResults.reverse();
+        biomarkerMap.get(key)!.values.push({
+          exam_date: result.exams.exam_date,
+          value: result.value,
+          value_numeric: result.value_numeric,
+          status: result.status
+        });
+      });
+
+      return {
+        biomarkers: Array.from(biomarkerMap.values()),
+        examDates: Array.from(examDatesSet).sort()
+      };
     }
   });
 
@@ -249,6 +273,15 @@ export default function PatientDashboard() {
           </div>
         )}
 
+        {/* Tabela de Acompanhamento Longitudinal */}
+        {trackingTableData && trackingTableData.biomarkers.length > 0 && (
+          <BiomarkerTrackingTable 
+            data={trackingTableData.biomarkers}
+            examDates={trackingTableData.examDates}
+            patientName={patient?.full_name}
+          />
+        )}
+
         {/* Filtro de categoria ativa */}
         {selectedCategory && (
           <div className="flex items-center gap-2">
@@ -286,12 +319,6 @@ export default function PatientDashboard() {
           </div>
         )}
 
-        {/* Tabela Comparativa */}
-        {examsComparison && examsComparison.length > 0 && !selectedCategory && (
-          <div>
-            <ExamComparisonTable exams={examsComparison} />
-          </div>
-        )}
 
         {/* Empty State */}
         {biomarkersData?.length === 0 && (
