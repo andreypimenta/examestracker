@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, Calendar, Activity, Heart } from "lucide-react";
+import { Upload, Calendar, Activity, Heart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { ExamUploadDialog } from "@/components/ExamUploadDialog";
 import { ExamResultsDialog } from "@/components/ExamResultsDialog";
 import { toast } from "sonner";
+import { BackButton } from "@/components/BackButton";
 
 const PatientProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -121,15 +122,10 @@ const PatientProfile = () => {
       <Navbar />
       <main className="flex-1 container mx-auto px-4 py-20">
         <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/patients")}
-            className="mb-6 text-white/70 hover:text-white hover:bg-white/10"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar
-          </Button>
+          {/* Back Button */}
+          <div className="mb-6">
+            <BackButton to="/patients" />
+          </div>
 
           {/* Patient Info */}
           <div className="bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 p-8 mb-8">

@@ -9,6 +9,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BackButton } from "@/components/BackButton";
 
 const Patients = () => {
   const { user } = useAuth();
@@ -40,6 +41,11 @@ const Patients = () => {
       <Navbar />
       <main className="flex-1 container mx-auto px-4 py-20">
         <div className="max-w-6xl mx-auto">
+          {/* Back Button */}
+          <div className="mb-6">
+            <BackButton to="/dashboard" />
+          </div>
+
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>

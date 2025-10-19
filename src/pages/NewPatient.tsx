@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
@@ -12,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { BackButton } from "@/components/BackButton";
 
 const patientSchema = z.object({
   full_name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100),
@@ -69,15 +69,10 @@ const NewPatient = () => {
       <Navbar />
       <main className="flex-1 container mx-auto px-4 py-20">
         <div className="max-w-2xl mx-auto">
-          {/* Header */}
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/patients")}
-            className="mb-6 text-white/70 hover:text-white hover:bg-white/10"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar
-          </Button>
+          {/* Back Button */}
+          <div className="mb-6">
+            <BackButton to="/patients" />
+          </div>
 
           <h1 className="text-4xl font-bold text-white mb-8">
             Adicionar Paciente

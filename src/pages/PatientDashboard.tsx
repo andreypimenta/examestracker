@@ -2,7 +2,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Activity, Calendar } from 'lucide-react';
+import { Activity, Calendar } from 'lucide-react';
+import { BackButton } from '@/components/BackButton';
 import { BiomarkerChart } from '@/components/BiomarkerChart';
 import { BiomarkerCategoryCard } from '@/components/BiomarkerCategoryCard';
 import { ExamComparisonTable } from '@/components/ExamComparisonTable';
@@ -221,14 +222,7 @@ export default function PatientDashboard() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate(`/patients/${id}`)}
-            className="border-rest-blue text-rest-blue hover:bg-rest-blue/10"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
+          <BackButton to={`/patients/${id}`} />
           <div>
             <h1 className="text-3xl font-bold text-white flex items-center gap-2">
               <Activity className="w-8 h-8 text-rest-blue" />
