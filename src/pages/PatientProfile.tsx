@@ -163,6 +163,14 @@ const PatientProfile = () => {
                   Ver Dashboard
                 </Button>
                 <Button
+                  onClick={() => navigate(`/patients/${id}/charts`)}
+                  variant="outline"
+                  className="border-rest-green text-rest-green hover:bg-rest-green/10"
+                >
+                  <Activity className="w-4 h-4 mr-2" />
+                  Gráficos
+                </Button>
+                <Button
                   onClick={() => setUploadDialogOpen(true)}
                   className="bg-gradient-to-r from-rest-blue to-rest-cyan hover:from-rest-cyan hover:to-rest-lightblue text-white"
                 >

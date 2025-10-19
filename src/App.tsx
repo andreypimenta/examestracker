@@ -12,6 +12,7 @@ import Patients from "./pages/Patients";
 import NewPatient from "./pages/NewPatient";
 import PatientProfile from "./pages/PatientProfile";
 import PatientDashboard from "./pages/PatientDashboard";
+import PatientCharts from "./pages/PatientCharts";
 import Shop from "./pages/Shop";
 import Licensee from "./pages/Licensee";
 import Owners from "./pages/Owners";
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/patients/new" element={<ProtectedRoute><NewPatient /></ProtectedRoute>} />
           <Route path="/patients/:id" element={<ProtectedRoute><PatientProfile /></ProtectedRoute>} />
           <Route path="/patients/:id/dashboard" element={<ProtectedRoute><PatientDashboard /></ProtectedRoute>} />
+          <Route path="/patients/:id/charts" element={<ProtectedRoute><PatientCharts /></ProtectedRoute>} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/licensee" element={<Licensee />} />
           <Route path="/owners" element={<Owners />} />
