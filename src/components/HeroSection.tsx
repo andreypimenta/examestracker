@@ -34,7 +34,7 @@ const HeroSection = () => {
       {/* Grid Pattern Overlay */}
       <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.1)_1px,transparent_1px)] [background-size:50px_50px] opacity-20" />
 
-      <div className="relative z-10 container mx-auto px-4 pt-8 pb-16 min-h-screen flex items-start">
+      <div className="relative z-10 container mx-auto px-4 pt-2 pb-16 min-h-screen flex items-start">
         <div className="grid lg:grid-cols-2 gap-12 items-center w-full">
           {/* Left Content */}
           <div className={`space-y-8 ${isVisible ? 'animate-fade-in' : 'opacity-0'}`}>

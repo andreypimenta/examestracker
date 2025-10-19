@@ -103,7 +103,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-zinc-900 to-black">
       <Navbar />
-      <main className="flex-1 container mx-auto px-4 py-8 space-y-12">
+      <main className="flex-1 container mx-auto px-4 py-4 space-y-12">
         <DashboardUploadZone />
         <QuickActions />
         <DashboardStats stats={stats} />
