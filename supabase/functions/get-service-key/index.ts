@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,40 +6,41 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Verificar autenticação
+    // Get auth token from header
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Não autorizado - faça login primeiro');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new Error('Token de autenticação não fornecido');
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
-    );
+    const token = authHeader.replace('Bearer ', '');
 
-    const { data: { user }, error } = await supabaseClient.auth.getUser();
-    
-    if (error || !user) {
-      throw new Error('Usuário não autenticado');
+    // Validate token with Supabase Auth API
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Token inválido ou expirado');
     }
 
+    const user = await response.json();
     console.log(`✅ Usuário autenticado: ${user.email}`);
 
-    // Retornar a Service Role Key
+    // Return the Service Role Key
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!serviceKey) {
-      throw new Error('SUPABASE_SERVICE_ROLE_KEY não encontrada');
+      throw new Error('SUPABASE_SERVICE_ROLE_KEY não encontrada no ambiente');
     }
 
     return new Response(
@@ -59,14 +59,16 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
       }
     );
   } catch (error) {
-    console.error('❌ Erro:', error.message);
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('❌ Erro:', errorMessage);
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message 
+        error: errorMessage 
       }),
       {
         status: 401,
