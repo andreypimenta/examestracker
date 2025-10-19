@@ -314,11 +314,6 @@ export default function PatientDashboard() {
                   {BIOMARKER_CATEGORIES[selectedCategory].name}
                 </h2>
               )}
-              {!selectedCategory && (
-              <span className="bg-rest-blue/80 backdrop-blur-sm px-4 py-1.5 rounded-lg font-semibold text-white border border-rest-blue/40 shadow-md">
-                Todos os Exames
-              </span>
-              )}
             </div>
             
             <BiomarkerTrackingTable 
