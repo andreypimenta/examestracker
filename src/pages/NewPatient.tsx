@@ -67,7 +67,7 @@ const NewPatient = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-zinc-900 to-black">
       <Navbar />
-      <main className="flex-1 container mx-auto px-4 py-20">
+      <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
           {/* Back Button */}
           <div className="mb-6">
