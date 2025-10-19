@@ -24,36 +24,38 @@ export function BiomarkerCategoryCard({
 
   return (
     <Card 
-      className="bg-white/90 backdrop-blur-md border-2 border-rest-blue/20 hover:border-rest-blue/40 hover:shadow-lg transition-all cursor-pointer"
+      className="bg-white/5 backdrop-blur-lg border-white/10 cursor-pointer transition-all hover:scale-105 hover:shadow-[0_10px_30px_rgba(0,173,238,0.3)] group"
       onClick={onClick}
     >
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <div 
-              className="w-3 h-3 rounded-full shadow-sm" 
-              style={{ backgroundColor: categoryColor }}
-            />
-            <span className="bg-rest-lightblue/30 px-3 py-1 rounded-md font-bold text-rest-darkblue">
+              className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform"
+              style={{ background: `linear-gradient(135deg, ${categoryColor}, ${categoryColor}dd)` }}
+            >
+              <div className="w-4 h-4 rounded-full bg-white/90" />
+            </div>
+            <span className="font-semibold text-white">
               {categoryName}
             </span>
           </CardTitle>
-          <TrendingUp className="w-5 h-5 text-rest-blue" />
+          <TrendingUp className="w-5 h-5 text-white/60" />
         </div>
       </CardHeader>
       <CardContent>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-medical-success/20 px-3 py-1.5 rounded-md border border-medical-success/30">
+          <div className="flex items-center gap-2 bg-medical-success/10 px-3 py-1.5 rounded-md border border-medical-success/20">
             <CheckCircle className="w-4 h-4 text-medical-success" />
-            <span className="text-sm font-semibold text-rest-darkblue">
+            <span className="text-sm font-semibold text-white">
               {normalCount} normal{normalCount !== 1 ? 'is' : ''}
             </span>
           </div>
           
           {alteredCount > 0 && (
-            <div className="flex items-center gap-2 bg-destructive/20 px-3 py-1.5 rounded-md border border-destructive/30">
+            <div className="flex items-center gap-2 bg-destructive/10 px-3 py-1.5 rounded-md border border-destructive/20">
               <AlertCircle className="w-4 h-4 text-destructive" />
-              <span className="text-sm font-semibold text-rest-darkblue">
+              <span className="text-sm font-semibold text-white">
                 {alteredCount} alterado{alteredCount !== 1 ? 's' : ''}
               </span>
             </div>
@@ -61,7 +63,7 @@ export function BiomarkerCategoryCard({
         </div>
         
         <div className="mt-3">
-          <Badge variant="secondary" className="text-xs bg-white border-2 border-rest-darkblue/20 text-rest-darkblue font-bold px-3 py-1">
+          <Badge variant="secondary" className="text-xs bg-white/10 border border-white/20 text-white font-semibold px-3 py-1">
             {totalBiomarkers} biomarcador{totalBiomarkers !== 1 ? 'es' : ''}
           </Badge>
         </div>
