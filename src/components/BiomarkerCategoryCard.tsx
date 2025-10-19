@@ -33,9 +33,8 @@ export function BiomarkerCategoryCard({
             <div 
               className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform"
               style={{ background: `linear-gradient(135deg, ${categoryColor}, ${categoryColor}dd)` }}
-            >
-              <div className="w-4 h-4 rounded-full bg-white/90" />
-            </div>
+            />
+
             <span className="bg-rest-blue/80 backdrop-blur-sm px-4 py-1.5 rounded-lg font-semibold text-white border border-rest-blue/40 shadow-md">
               {categoryName}
             </span>
