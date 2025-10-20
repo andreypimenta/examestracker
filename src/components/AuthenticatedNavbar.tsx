@@ -11,13 +11,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 
 interface AuthenticatedNavbarProps {
   showBackButton?: boolean;
@@ -110,61 +103,52 @@ export const AuthenticatedNavbar = ({ showBackButton = false, backButtonPath = '
         </div>
 
         {/* Mobile Menu */}
-        <Sheet>
-          <SheetTrigger asChild>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <button 
               className="md:hidden p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
               aria-label="Menu"
             >
               <Menu size={24} />
             </button>
-          </SheetTrigger>
+          </DropdownMenuTrigger>
           
-          <SheetContent 
-            side="right" 
-            className="w-[280px] sm:w-[350px] bg-gradient-to-br from-black via-zinc-900 to-black border-l border-white/10"
+          <DropdownMenuContent 
+            align="end" 
+            className="w-56 bg-black/95 border-white/10 text-white z-50"
           >
-            <SheetHeader>
-              <SheetTitle className="text-white text-left">Menu</SheetTitle>
-            </SheetHeader>
+            <DropdownMenuItem 
+              onClick={() => navigate('/dashboard')} 
+              className="cursor-pointer hover:bg-white/10 py-3"
+            >
+              Home
+            </DropdownMenuItem>
             
-            <div className="flex flex-col space-y-3 mt-8">
-              <Link 
-                to="/dashboard"
-                className="font-medium text-white/90 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg px-4 py-3 transition-all hover:translate-x-1 text-base flex items-center group"
-              >
-                <span className="w-1 h-6 bg-rest-blue rounded-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                Home
-              </Link>
-              
-              <Link 
-                to="/patients"
-                className="font-medium text-white/90 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg px-4 py-3 transition-all hover:translate-x-1 text-base flex items-center group"
-              >
-                <span className="w-1 h-6 bg-rest-blue rounded-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                Pacientes
-              </Link>
-              
-              <button 
-                onClick={() => scrollToSection('contact')}
-                className="font-medium text-white/90 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg px-4 py-3 transition-all hover:translate-x-1 text-base text-left flex items-center group"
-              >
-                <span className="w-1 h-6 bg-rest-blue rounded-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                Contato
-              </button>
-              
-              <div className="pt-4 mt-4 border-t border-white/10">
-                <Button 
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg w-full py-3 text-base font-medium"
-                  onClick={handleSignOut}
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sair
-                </Button>
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
+            <DropdownMenuItem 
+              onClick={() => navigate('/patients')} 
+              className="cursor-pointer hover:bg-white/10 py-3"
+            >
+              Pacientes
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem 
+              onClick={() => scrollToSection('contact')} 
+              className="cursor-pointer hover:bg-white/10 py-3"
+            >
+              Contato
+            </DropdownMenuItem>
+            
+            <DropdownMenuSeparator className="bg-white/10" />
+            
+            <DropdownMenuItem 
+              onClick={handleSignOut} 
+              className="cursor-pointer hover:bg-white/10 text-red-400 py-3"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
