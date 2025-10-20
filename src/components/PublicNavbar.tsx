@@ -1,14 +1,23 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import exLogo from "@/assets/ex-logo.png";
 
 export const PublicNavbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleNavigateToSection = (sectionId: string) => {
+    if (location.pathname === '/') {
+      scrollToSection(sectionId);
+    } else {
+      navigate('/', { state: { scrollTo: sectionId } });
     }
   };
 
@@ -26,13 +35,13 @@ export const PublicNavbar = () => {
         
         <nav className="hidden md:flex items-center space-x-8">
           <button 
-            onClick={() => scrollToSection('inicio')}
+            onClick={() => handleNavigateToSection('inicio')}
             className="text-gray-300 hover:text-rest-cyan transition-colors"
           >
             Início
           </button>
           <button 
-            onClick={() => scrollToSection('como-funciona')}
+            onClick={() => handleNavigateToSection('como-funciona')}
             className="text-gray-300 hover:text-rest-cyan transition-colors"
           >
             Como Funciona
