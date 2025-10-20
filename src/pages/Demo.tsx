@@ -196,12 +196,6 @@ const Demo = () => {
                         </div>
                       ))}
                     </div>
-                    
-                    {processingStep === 4 && (
-                      <div className="mt-6 text-center">
-                        <p className="text-rest-lightblue font-semibold">✓ Processamento concluído em 15 segundos</p>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               </div>
