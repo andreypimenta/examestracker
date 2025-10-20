@@ -36,11 +36,11 @@ const Footer = () => {
                 <li><a href="#" className="text-white/70 hover:text-white transition-opacity">Preços</a></li>
               </ul>
             </div>
-            <div className="flex items-center justify-center mt-8">
+            <div className="flex items-center justify-start pl-8 mt-12">
               <img 
                 src={cactoLogo} 
                 alt="CACTO - Cognitive Analytics for Care, Technology & Outcomes" 
-                className="w-32 h-32 md:w-40 md:h-40 object-contain opacity-80 hover:opacity-100 transition-opacity"
+                className="w-24 h-24 md:w-28 md:h-28 object-contain opacity-80 hover:opacity-100 transition-opacity"
               />
             </div>
           </div>
