@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Menu, X, LogOut, User } from "lucide-react";
+import { Menu, LogOut, User } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { BackButton } from "@/components/BackButton";
@@ -12,6 +11,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 interface AuthenticatedNavbarProps {
   showBackButton?: boolean;
@@ -19,7 +25,6 @@ interface AuthenticatedNavbarProps {
 }
 
 export const AuthenticatedNavbar = ({ showBackButton = false, backButtonPath = '/patients' }: AuthenticatedNavbarProps) => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,7 +45,6 @@ export const AuthenticatedNavbar = ({ showBackButton = false, backButtonPath = '
       const section = document.getElementById(sectionId);
       if (section) {
         section.scrollIntoView({ behavior: 'smooth' });
-        setIsMenuOpen(false);
       }
     } catch (error) {
       console.error(`Error scrolling to ${sectionId}:`, error);
@@ -105,50 +109,63 @@ export const AuthenticatedNavbar = ({ showBackButton = false, backButtonPath = '
           </DropdownMenu>
         </div>
 
-        {/* Mobile Menu Button */}
-        <button 
-          className="md:hidden p-2 text-white"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          aria-label="Toggle menu"
-        >
-          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </div>
-      
-      {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-black/95 backdrop-blur-lg w-full shadow-lg py-6 border-t border-white/10 animate-fade-in">
-          <div className="container mx-auto flex flex-col space-y-2 px-4">
-            <Link 
-              to="/dashboard"
-              className="font-medium text-white/90 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg px-4 py-3 transition-colors text-lg block"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Home
-            </Link>
-            <Link 
-              to="/patients"
-              className="font-medium text-white/90 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg px-4 py-3 transition-colors text-lg block"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Pacientes
-            </Link>
+        {/* Mobile Menu */}
+        <Sheet>
+          <SheetTrigger asChild>
             <button 
-              onClick={() => scrollToSection('contact')}
-              className="font-medium text-white/90 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg px-4 py-3 transition-colors text-lg text-left"
+              className="md:hidden p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+              aria-label="Menu"
             >
-              Contato
+              <Menu size={24} />
             </button>
-            <Button 
-              className="bg-red-500 hover:bg-red-600 text-white rounded-full w-full mt-2 py-4 text-lg"
-              onClick={handleSignOut}
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sair
-            </Button>
-          </div>
-        </div>
-      )}
+          </SheetTrigger>
+          
+          <SheetContent 
+            side="right" 
+            className="w-[280px] sm:w-[350px] bg-gradient-to-br from-black via-zinc-900 to-black border-l border-white/10"
+          >
+            <SheetHeader>
+              <SheetTitle className="text-white text-left">Menu</SheetTitle>
+            </SheetHeader>
+            
+            <div className="flex flex-col space-y-3 mt-8">
+              <Link 
+                to="/dashboard"
+                className="font-medium text-white/90 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg px-4 py-3 transition-all hover:translate-x-1 text-base flex items-center group"
+              >
+                <span className="w-1 h-6 bg-rest-blue rounded-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                Home
+              </Link>
+              
+              <Link 
+                to="/patients"
+                className="font-medium text-white/90 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg px-4 py-3 transition-all hover:translate-x-1 text-base flex items-center group"
+              >
+                <span className="w-1 h-6 bg-rest-blue rounded-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                Pacientes
+              </Link>
+              
+              <button 
+                onClick={() => scrollToSection('contact')}
+                className="font-medium text-white/90 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg px-4 py-3 transition-all hover:translate-x-1 text-base text-left flex items-center group"
+              >
+                <span className="w-1 h-6 bg-rest-blue rounded-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                Contato
+              </button>
+              
+              <div className="pt-4 mt-4 border-t border-white/10">
+                <Button 
+                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg w-full py-3 text-base font-medium"
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sair
+                </Button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
     </header>
   );
 };
