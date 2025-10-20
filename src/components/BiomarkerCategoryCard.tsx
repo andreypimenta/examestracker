@@ -46,7 +46,7 @@ export function BiomarkerCategoryCard({
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 bg-medical-success/10 px-3 py-1.5 rounded-md border border-medical-success/20">
             <CheckCircle className="w-4 h-4 text-medical-success" />
-            <span className="text-sm font-semibold text-white">
+            <span className="text-xs font-semibold text-white whitespace-nowrap">
               {normalCount} norma{normalCount !== 1 ? 'is' : 'l'}
             </span>
           </div>
@@ -54,7 +54,7 @@ export function BiomarkerCategoryCard({
           {alteredCount > 0 && (
             <div className="flex items-center gap-2 bg-destructive/10 px-3 py-1.5 rounded-md border border-destructive/20">
               <AlertCircle className="w-4 h-4 text-destructive" />
-              <span className="text-sm font-semibold text-white">
+              <span className="text-xs font-semibold text-white whitespace-nowrap">
                 {alteredCount} alterado{alteredCount !== 1 ? 's' : ''}
               </span>
             </div>
