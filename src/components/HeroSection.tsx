@@ -96,9 +96,7 @@ const HeroSection = () => {
               <div className="absolute -inset-8 bg-gradient-to-r from-rest-blue/20 to-white/10 rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-700" />
               <div className="relative rounded-3xl overflow-hidden border border-white/20 backdrop-blur-sm bg-white/5 p-12 hover-scale flex items-center justify-center min-h-[300px]">
                 <div className="text-center space-y-4">
-                  <div className="w-32 h-32 bg-gradient-to-br from-rest-blue to-rest-cyan rounded-full flex items-center justify-center mx-auto">
-                    <img src={exLogo} alt="EX Logo" className="w-20 h-20 object-contain" />
-                  </div>
+                  <img src={exLogo} alt="EX Logo" className="w-32 h-32 object-contain mx-auto" />
                   <h3 className="text-2xl font-bold text-white">Processamento com IA</h3>
                   <p className="text-white/70">Extração inteligente de dados médicos</p>
                 </div>
