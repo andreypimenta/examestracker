@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ArrowRight, Upload, Brain, TrendingUp, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import exLogo from "@/assets/ex-logo.png";
 
 const HeroSection = () => {
   const navigate = useNavigate();
@@ -96,7 +97,7 @@ const HeroSection = () => {
               <div className="relative rounded-3xl overflow-hidden border border-white/20 backdrop-blur-sm bg-white/5 p-12 hover-scale flex items-center justify-center min-h-[300px]">
                 <div className="text-center space-y-4">
                   <div className="w-32 h-32 bg-gradient-to-br from-rest-blue to-rest-cyan rounded-full flex items-center justify-center mx-auto">
-                    <Brain className="w-16 h-16 text-white" />
+                    <img src={exLogo} alt="EX Logo" className="w-20 h-20 object-contain" />
                   </div>
                   <h3 className="text-2xl font-bold text-white">Processamento com IA</h3>
                   <p className="text-white/70">Extração inteligente de dados médicos</p>
@@ -112,7 +113,7 @@ const HeroSection = () => {
                 <div className="text-xs text-white/70">PDFs em segundos</div>
               </div>
               <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:border-rest-blue/30 transition-colors hover-scale">
-                <Brain className="w-6 h-6 text-rest-lightblue mb-2" />
+                <img src={exLogo} alt="EX Logo" className="w-8 h-8 object-contain mb-2" />
                 <div className="text-sm font-medium text-white">IA Inteligente</div>
                 <div className="text-xs text-white/70">Análise automática</div>
               </div>
