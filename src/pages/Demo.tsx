@@ -16,6 +16,9 @@ const Demo = () => {
   const [showResults, setShowResults] = useState(false);
 
   useEffect(() => {
+    // Scroll to top on page load
+    window.scrollTo(0, 0);
+
     // Simular upload automático
     const uploadTimer = setTimeout(() => {
       const interval = setInterval(() => {
