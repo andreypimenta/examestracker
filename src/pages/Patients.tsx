@@ -42,18 +42,18 @@ const Patients = () => {
       <main className="flex-1 container mx-auto px-4 py-4">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+            <div className="flex flex-col">
+              <h1 className="text-4xl md:text-5xl font-bold text-white">
                 Meus Pacientes
               </h1>
-              <p className="text-white/70">
+              <p className="text-white/70 mt-2">
                 Gerencie seus pacientes e seus exames
               </p>
             </div>
             <Button
               onClick={() => navigate("/patients/new")}
-              className="bg-gradient-to-r from-rest-blue to-rest-cyan hover:from-rest-cyan hover:to-rest-lightblue text-white"
+              className="bg-gradient-to-r from-rest-blue to-rest-cyan hover:from-rest-cyan hover:to-rest-lightblue text-white shrink-0"
             >
               <Plus className="w-5 h-5 mr-2" />
               Adicionar Paciente
