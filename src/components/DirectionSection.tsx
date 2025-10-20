@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import cactoLogo from "@/assets/cacto-logo.png";
 const DirectionSection = () => {
   const navigate = useNavigate();
-  return <section className="py-12 md:py-20 lg:py-24 bg-gradient-to-b from-zinc-900 to-black relative overflow-hidden">
+  return <section id="como-funciona" className="py-12 md:py-20 lg:py-24 bg-gradient-to-b from-zinc-900 to-black relative overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0">
         <div className="absolute top-20 left-20 w-72 h-72 bg-rest-blue/5 rounded-full blur-3xl" />
