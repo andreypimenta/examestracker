@@ -134,13 +134,13 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col bg-background border-border">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col bg-gradient-to-br from-rest-black via-rest-charcoal to-rest-black border-white/10">
         <DialogHeader>
-          <DialogTitle className="text-2xl">
+          <DialogTitle className="text-2xl text-white">
             📊 Resultados do Exame
           </DialogTitle>
           {examData?.exam && (
-            <div className="text-sm text-muted-foreground space-y-1">
+            <div className="text-sm text-white/70 space-y-1">
               <p>
                 {examData.exam.laboratory} | {new Date(examData.exam.exam_date).toLocaleDateString("pt-BR")}
               </p>
@@ -152,54 +152,58 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
         </DialogHeader>
 
         <Tabs defaultValue="results" className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="results">📊 Resultados</TabsTrigger>
-            <TabsTrigger value="insights">🧠 Insights</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 bg-white/5 border border-white/10">
+            <TabsTrigger value="results" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/70">
+              📊 Resultados
+            </TabsTrigger>
+            <TabsTrigger value="insights" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/70">
+              🧠 Insights
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="results" className="flex-1 overflow-hidden flex flex-col space-y-4 mt-4">
             {/* Filtros */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-white/50" />
                 <Input
                   placeholder="Buscar biomarcador..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 bg-white/5 border-white/20 text-white placeholder:text-white/50"
                 />
               </div>
 
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white/5 border-white/20 text-white">
                   <SelectValue placeholder="Todas as categorias" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as categorias</SelectItem>
-                  <SelectItem value="cardiovascular">Cardiovascular</SelectItem>
-                  <SelectItem value="metabolico">Metabólico</SelectItem>
-                  <SelectItem value="hematologico">Hematológico</SelectItem>
-                  <SelectItem value="hormonal">Hormonal</SelectItem>
-                  <SelectItem value="renal">Renal</SelectItem>
-                  <SelectItem value="hepatico">Hepático</SelectItem>
-                  <SelectItem value="minerais">Minerais/Vitaminas</SelectItem>
+                <SelectContent className="bg-rest-charcoal border-white/10">
+                  <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10">Todas as categorias</SelectItem>
+                  <SelectItem value="cardiovascular" className="text-white hover:bg-white/10 focus:bg-white/10">Cardiovascular</SelectItem>
+                  <SelectItem value="metabolico" className="text-white hover:bg-white/10 focus:bg-white/10">Metabólico</SelectItem>
+                  <SelectItem value="hematologico" className="text-white hover:bg-white/10 focus:bg-white/10">Hematológico</SelectItem>
+                  <SelectItem value="hormonal" className="text-white hover:bg-white/10 focus:bg-white/10">Hormonal</SelectItem>
+                  <SelectItem value="renal" className="text-white hover:bg-white/10 focus:bg-white/10">Renal</SelectItem>
+                  <SelectItem value="hepatico" className="text-white hover:bg-white/10 focus:bg-white/10">Hepático</SelectItem>
+                  <SelectItem value="minerais" className="text-white hover:bg-white/10 focus:bg-white/10">Minerais/Vitaminas</SelectItem>
                 </SelectContent>
               </Select>
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white/5 border-white/20 text-white">
                   <SelectValue placeholder="Todos os status" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os status</SelectItem>
-                  <SelectItem value="normal">Apenas normais</SelectItem>
-                  <SelectItem value="altered">Apenas alterados</SelectItem>
+                <SelectContent className="bg-rest-charcoal border-white/10">
+                  <SelectItem value="all" className="text-white hover:bg-white/10 focus:bg-white/10">Todos os status</SelectItem>
+                  <SelectItem value="normal" className="text-white hover:bg-white/10 focus:bg-white/10">Apenas normais</SelectItem>
+                  <SelectItem value="altered" className="text-white hover:bg-white/10 focus:bg-white/10">Apenas alterados</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Tabela */}
-            <div className="flex-1 overflow-auto border rounded-lg">
+            <div className="flex-1 overflow-auto border border-white/10 rounded-lg bg-white/5 backdrop-blur-sm">
               {isLoading ? (
                 <div className="space-y-2 p-4">
                   {[...Array(10)].map((_, i) => (
@@ -208,19 +212,19 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
                 </div>
               ) : (
                 <Table>
-                  <TableHeader className="sticky top-0 bg-background z-10">
+                  <TableHeader className="sticky top-0 bg-white/10 backdrop-blur-sm z-10">
                     <TableRow>
-                      <TableHead className="w-[30%]">Biomarcador</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                      <TableHead className="text-right">Referência</TableHead>
-                      <TableHead className="text-center">Status</TableHead>
-                      <TableHead>Categoria</TableHead>
+                      <TableHead className="w-[30%] text-white font-bold">Biomarcador</TableHead>
+                      <TableHead className="text-right text-white font-bold">Valor</TableHead>
+                      <TableHead className="text-right text-white font-bold">Referência</TableHead>
+                      <TableHead className="text-center text-white font-bold">Status</TableHead>
+                      <TableHead className="text-white font-bold">Categoria</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredResults.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={5} className="text-center text-white/70 py-8">
                           Nenhum resultado encontrado
                         </TableCell>
                       </TableRow>
@@ -230,16 +234,16 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
                         const categoryColor = getCategoryColor(category);
                         
                         return (
-                          <TableRow key={result.id}>
-                            <TableCell className="font-medium">
+                          <TableRow key={result.id} className="border-b border-white/5 hover:bg-white/5">
+                            <TableCell className="font-medium text-white">
                               {result.biomarker_name}
                             </TableCell>
                             <TableCell className="text-right">
-                              <span className="font-mono">
+                              <span className="font-mono text-white">
                                 {result.value} {result.unit}
                               </span>
                             </TableCell>
-                            <TableCell className="text-right text-muted-foreground">
+                            <TableCell className="text-right text-white/70">
                               {result.reference_min && result.reference_max
                                 ? `${result.reference_min} - ${result.reference_max}`
                                 : "N/A"}
@@ -269,7 +273,7 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
               )}
             </div>
 
-            <div className="text-xs text-muted-foreground text-center">
+            <div className="text-xs text-white/70 text-center">
               Mostrando {filteredResults.length} de {stats.total} biomarcadores
             </div>
           </TabsContent>
