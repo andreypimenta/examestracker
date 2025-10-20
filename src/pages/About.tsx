@@ -63,7 +63,6 @@ const About = () => {
             <h2 className="text-3xl font-bold text-rest-cyan mb-6">Nossos Pilares</h2>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="bg-white/5 border border-white/10 rounded-lg p-6 hover:bg-white/10 transition-all">
-                <div className="text-4xl mb-4">🚀</div>
                 <h3 className="text-xl font-bold text-white mb-2">Eficiência</h3>
                 <p className="text-gray-400">
                   Automatizamos processos de cuidado para que profissionais possam focar no que realmente importa: o paciente.
@@ -71,7 +70,6 @@ const About = () => {
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-lg p-6 hover:bg-white/10 transition-all">
-                <div className="text-4xl mb-4">🎯</div>
                 <h3 className="text-xl font-bold text-white mb-2">Precisão</h3>
                 <p className="text-gray-400">
                   Oferecemos análises baseadas em dados para decisões mais assertivas em saúde.
@@ -79,7 +77,6 @@ const About = () => {
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-lg p-6 hover:bg-white/10 transition-all">
-                <div className="text-4xl mb-4">📈</div>
                 <h3 className="text-xl font-bold text-white mb-2">Resultados</h3>
                 <p className="text-gray-400">
                   Entregamos impacto real e mensurável para pacientes e profissionais de saúde.
@@ -87,7 +84,6 @@ const About = () => {
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-lg p-6 hover:bg-white/10 transition-all">
-                <div className="text-4xl mb-4">🧠</div>
                 <h3 className="text-xl font-bold text-white mb-2">Inovação</h3>
                 <p className="text-gray-400">
                   Utilizamos inteligência artificial e tecnologia de ponta para transformar dados em insights.
