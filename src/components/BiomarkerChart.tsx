@@ -54,17 +54,17 @@ export function BiomarkerChart({
   };
 
   return (
-    <Card className="bg-white/10 backdrop-blur-md border-white/20 overflow-hidden">
+    <Card className="bg-white/10 backdrop-blur-md border-white/20">
       <CardHeader>
         <CardTitle className="text-xl text-white">{biomarkerName}</CardTitle>
         <CardDescription className="text-base text-white/70">
           Evolução ao longo do tempo {unit && `(${unit})`}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 sm:p-6">
         <ChartContainer config={chartConfig} className="h-[300px] sm:h-[400px] lg:h-[500px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
+            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
               
               <XAxis 
@@ -77,7 +77,7 @@ export function BiomarkerChart({
               <YAxis 
                 className="text-sm"
                 tick={{ fill: 'rgba(255, 255, 255, 0.7)' }}
-                width={50}
+                width={60}
               />
               
               <ChartTooltip 
@@ -138,13 +138,6 @@ export function BiomarkerChart({
                   stroke="hsl(var(--destructive))" 
                   strokeDasharray="5 5"
                   strokeWidth={2}
-                  label={{ 
-                    value: `Máx: ${referenceMax}`, 
-                    position: 'right', 
-                    fill: 'hsl(var(--destructive))',
-                    fontSize: 12,
-                    fontWeight: 'bold'
-                  }}
                 />
               )}
               
@@ -154,13 +147,6 @@ export function BiomarkerChart({
                   stroke="hsl(var(--destructive))" 
                   strokeDasharray="5 5"
                   strokeWidth={2}
-                  label={{ 
-                    value: `Mín: ${referenceMin}`, 
-                    position: 'right', 
-                    fill: 'hsl(var(--destructive))',
-                    fontSize: 12,
-                    fontWeight: 'bold'
-                  }}
                 />
               )}
               
