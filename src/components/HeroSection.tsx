@@ -74,16 +74,16 @@ const HeroSection = () => {
             {/* Key Features */}
             <div className="grid grid-cols-3 gap-8 pt-8 border-t border-white/10">
               <div className="text-center">
-                <div className="text-3xl font-bold text-rest-lightblue">PDF+IMG</div>
-                <div className="text-sm text-white/70">Qualquer Formato</div>
+                <div className="text-3xl font-bold text-rest-lightblue">Multi</div>
+                <div className="text-sm text-white/70">Formato</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-rest-lightblue">IA Claude</div>
-                <div className="text-sm text-white/70">Análise Inteligente</div>
+                <div className="text-3xl font-bold text-rest-lightblue">IA</div>
+                <div className="text-sm text-white/70">Insights Clínicos</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-rest-lightblue">100%</div>
-                <div className="text-sm text-white/70">Seguro</div>
+                <div className="text-3xl font-bold text-rest-lightblue">Cloud</div>
+                <div className="text-sm text-white/70">100% Online</div>
               </div>
             </div>
           </div>
