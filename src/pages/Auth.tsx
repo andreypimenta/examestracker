@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import exLogo from "@/assets/ex-logo.png";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -114,9 +114,11 @@ const Auth = () => {
         {/* Logo */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-3 mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-rest-blue to-rest-cyan rounded-full flex items-center justify-center">
-              <Activity className="w-9 h-9 text-white" />
-            </div>
+            <img 
+              src={exLogo} 
+              alt="Exames Logo" 
+              className="w-16 h-16 object-contain" 
+            />
             <span className="text-3xl font-bold text-white tracking-tight">Exames</span>
           </div>
           <p className="text-white/70">Plataforma de Gestão de Exames Médicos</p>
