@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import DirectionSection from "@/components/DirectionSection";
+import AboutSection from "@/components/AboutSection";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,6 +35,7 @@ const Index = () => {
       <main>
         <HeroSection />
         <DirectionSection />
+        <AboutSection />
       </main>
       <Footer />
     </div>
