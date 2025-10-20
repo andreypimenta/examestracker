@@ -48,7 +48,7 @@ export const AuthenticatedNavbar = () => {
           <img 
             src={exLogo} 
             alt="Exames Logo" 
-            className="w-24 h-24 object-contain group-hover:scale-110 transition-transform" 
+            className="w-16 h-16 object-contain group-hover:scale-110 transition-transform" 
           />
           <span className="text-2xl font-bold text-white tracking-tight">Exames</span>
         </Link>
