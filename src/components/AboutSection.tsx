@@ -1,4 +1,5 @@
-import { Clock, Heart, Medal, Users } from "lucide-react";
+import { Brain, Target, TrendingUp, Zap } from "lucide-react";
+import cactoLogo from "@/assets/cacto-logo.png";
 
 const AboutSection = () => {
   return (
@@ -6,11 +7,11 @@ const AboutSection = () => {
       <div className="container mx-auto px-4">
         <div className="text-center max-w-3xl mx-auto mb-20">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-8 tracking-tight animate-fade-in">
-            Pioneering the Future of Recovery Wellness
+            Quem Somos
           </h2>
           <p className="text-xl text-white/80 leading-relaxed animate-fade-in" style={{ animationDelay: "0.1s" }}>
-            Since our founding, REST RECOVERY has been at the forefront of recovery science, 
-            helping thousands achieve optimal wellness through cutting-edge therapies and products.
+            Exame é uma ferramenta da CACTO - Cognitive Analytics for Care Technology & Outcomes. 
+            Unimos ciência, tecnologia e cuidado para transformar a saúde.
           </p>
         </div>
 
@@ -32,36 +33,36 @@ const AboutSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center animate-fade-in" style={{ animationDelay: "0.3s" }}>
           <div className="space-y-6">
             <h3 className="text-3xl md:text-4xl font-bold text-white mb-6 tracking-tight">
-              Our Story
+              Nossa História
             </h3>
             <div className="space-y-6 text-lg text-white/80 leading-relaxed">
               <p>
-                At Rest Recovery, we believe that true wellness begins with intentional restoration. 
-                Our boutique wellness facilities are designed to help you recover, heal, and optimize 
-                your body and mind using science-backed, high-performance therapies.
+                Nosso propósito é simplificar a complexidade dos dados clínicos e transformá-los em 
+                soluções inteligentes que melhoram a vida das pessoas.
               </p>
               <p>
-                We combine the latest in recovery technology—like cold plunges, infrared saunas, 
-                hyperbaric chambers, float therapy, red light therapy, compression, PEMF, and salt 
-                rooms—into a seamless, rejuvenating experience.
+                Acreditamos que saúde é resiliência. Assim como o cacto armazena energia e prospera 
+                em ambientes desafiadores, usamos análises cognitivas, inteligência artificial e 
+                inovação tecnológica para apoiar profissionais e instituições a alcançarem melhores 
+                desfechos clínicos.
               </p>
               <p>
-                Founded on the idea that recovery should be accessible, effective, and luxurious, 
-                each of our locations is built with care, outfitted with industry-leading equipment, 
-                and supported by knowledgeable staff who guide you through your wellness journey.
+                Combinamos conhecimento médico, ciência de dados e tecnologia de ponta para criar 
+                soluções que promovem eficiência nos processos de cuidado, precisão nas decisões 
+                em saúde, e resultados reais para pacientes e profissionais.
               </p>
               <p className="font-medium text-white italic">
-                Welcome to the future of feeling good.
+                Estamos construindo o futuro da saúde com inteligência, simplicidade e impacto.
               </p>
             </div>
           </div>
           <div className="relative">
             <div className="absolute -inset-4 bg-gradient-to-r from-white/10 to-transparent rounded-2xl blur-lg"></div>
-            <div className="relative rounded-2xl overflow-hidden border border-white/10">
+            <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-white p-8">
               <img 
-                alt="REST RECOVERY Logo" 
+                alt="CACTO Logo" 
                 className="w-full h-auto transform hover:scale-105 transition-transform duration-700" 
-                src="/lovable-uploads/b75b628b-2cba-4748-8f80-792a5ae8ee1d.png" 
+                src={cactoLogo}
               />
             </div>
           </div>
@@ -72,21 +73,21 @@ const AboutSection = () => {
 };
 
 const features = [{
-  icon: Medal,
-  title: "Premium Quality",
-  description: "Industry-leading recovery equipment and protocols backed by science."
+  icon: Zap,
+  title: "Eficiência",
+  description: "Eficiência nos processos de cuidado com automação inteligente."
 }, {
-  icon: Users,
-  title: "Expert Support",
-  description: "Dedicated team of wellness professionals to guide your journey."
+  icon: Target,
+  title: "Precisão",
+  description: "Precisão nas decisões em saúde através de análise de dados avançada."
 }, {
-  icon: Heart,
-  title: "Holistic Approach",
-  description: "Comprehensive recovery solutions addressing mind and body."
+  icon: TrendingUp,
+  title: "Resultados",
+  description: "Resultados reais para pacientes e profissionais de saúde."
 }, {
-  icon: Clock,
-  title: "Efficient Results",
-  description: "Accelerate recovery and optimize performance in less time."
+  icon: Brain,
+  title: "Inovação",
+  description: "Inteligência artificial e tecnologia de ponta aplicadas à saúde."
 }];
 
 export default AboutSection;
