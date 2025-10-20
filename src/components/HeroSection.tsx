@@ -96,7 +96,7 @@ const HeroSection = () => {
               <div className="absolute -inset-8 bg-gradient-to-r from-rest-blue/20 to-white/10 rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-700" />
               <div className="relative rounded-3xl overflow-hidden border border-white/20 backdrop-blur-sm bg-white/5 p-12 hover-scale flex items-center justify-center min-h-[300px]">
                 <div className="text-center space-y-4">
-                  <img src={exLogo} alt="EX Logo" className="w-32 h-32 object-contain mx-auto" />
+                  <img src={exLogo} alt="EX Logo" className="w-64 h-64 object-contain mx-auto" />
                   <h3 className="text-2xl font-bold text-white">Processamento com IA</h3>
                   <p className="text-white/70">Extração inteligente de dados médicos</p>
                 </div>
@@ -111,7 +111,7 @@ const HeroSection = () => {
                 <div className="text-xs text-white/70">PDFs em segundos</div>
               </div>
               <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:border-rest-blue/30 transition-colors hover-scale">
-                <img src={exLogo} alt="EX Logo" className="w-8 h-8 object-contain mb-2" />
+                <img src={exLogo} alt="EX Logo" className="w-16 h-16 object-contain mb-2" />
                 <div className="text-sm font-medium text-white">IA Inteligente</div>
                 <div className="text-xs text-white/70">Análise automática</div>
               </div>
