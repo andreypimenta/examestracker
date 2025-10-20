@@ -47,7 +47,7 @@ export function BiomarkerCategoryCard({
           <div className="flex items-center gap-2 bg-medical-success/10 px-3 py-1.5 rounded-md border border-medical-success/20">
             <CheckCircle className="w-4 h-4 text-medical-success" />
             <span className="text-sm font-semibold text-white">
-              {normalCount} normal{normalCount !== 1 ? 'is' : ''}
+              {normalCount} norma{normalCount !== 1 ? 'is' : 'l'}
             </span>
           </div>
           
