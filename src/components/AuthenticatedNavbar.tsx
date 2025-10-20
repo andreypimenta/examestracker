@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut, User } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { BackButton } from "@/components/BackButton";
 import exLogo from "@/assets/ex-logo.png";
 import {
   DropdownMenu,
@@ -12,7 +13,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export const AuthenticatedNavbar = () => {
+interface AuthenticatedNavbarProps {
+  showBackButton?: boolean;
+  backButtonPath?: string;
+}
+
+export const AuthenticatedNavbar = ({ showBackButton = false, backButtonPath = '/patients' }: AuthenticatedNavbarProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { signOut } = useAuth();
   const navigate = useNavigate();
@@ -44,14 +50,19 @@ export const AuthenticatedNavbar = () => {
   return (
     <header className="sticky top-0 z-50 bg-black border-b border-white/10 backdrop-blur-md">
       <div className="container mx-auto flex items-center justify-between h-20 px-4">
-        <Link to="/dashboard" className="flex items-center space-x-3 group">
-          <img 
-            src={exLogo} 
-            alt="Exames Logo" 
-            className="w-16 h-16 object-contain group-hover:scale-110 transition-transform" 
-          />
-          <span className="text-2xl font-bold text-white tracking-tight">Exames</span>
-        </Link>
+        <div className="flex items-center gap-4">
+          {showBackButton && (
+            <BackButton to={backButtonPath} className="flex-shrink-0" />
+          )}
+          <Link to="/dashboard" className="flex items-center space-x-3 group">
+            <img 
+              src={exLogo} 
+              alt="Exames Logo" 
+              className="w-16 h-16 object-contain group-hover:scale-110 transition-transform" 
+            />
+            <span className="text-2xl font-bold text-white tracking-tight">Exames</span>
+          </Link>
+        </div>
         
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-8">

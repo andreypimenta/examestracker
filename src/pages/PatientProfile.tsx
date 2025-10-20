@@ -119,10 +119,7 @@ const PatientProfile = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-zinc-900 to-black">
-      <Navbar />
-      <div className="absolute top-4 left-4 z-50">
-        <BackButton to="/patients" />
-      </div>
+      <Navbar showBackButton={true} backButtonPath="/patients" />
       <main className="flex-1 container mx-auto px-4 py-4">
         <div className="max-w-6xl mx-auto">
 

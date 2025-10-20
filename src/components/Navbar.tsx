@@ -3,12 +3,21 @@ import { PublicNavbar } from "./PublicNavbar";
 import { AuthenticatedNavbar } from "./AuthenticatedNavbar";
 import { NavbarSkeleton } from "./NavbarSkeleton";
 
-const Navbar = () => {
+interface NavbarProps {
+  showBackButton?: boolean;
+  backButtonPath?: string;
+}
+
+const Navbar = ({ showBackButton, backButtonPath }: NavbarProps) => {
   const { user, loading } = useAuth();
   
   if (loading) return <NavbarSkeleton />;
   
-  return user ? <AuthenticatedNavbar /> : <PublicNavbar />;
+  return user ? (
+    <AuthenticatedNavbar showBackButton={showBackButton} backButtonPath={backButtonPath} />
+  ) : (
+    <PublicNavbar />
+  );
 };
 
 export default Navbar;
