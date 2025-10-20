@@ -259,8 +259,7 @@ export function BiomarkerTrackingTable({ data, examDates, patientName, initialCa
                           key={date}
                           className={cn(
                             "text-center font-semibold",
-                            value && getStatusColor(value.status),
-                            isLatestExam && "bg-rest-cyan/15 ring-2 ring-rest-cyan border-l-2 border-r-2 border-rest-cyan"
+                            value && getStatusColor(value.status)
                           )}
                         >
                           {value ? value.value : '-'}
