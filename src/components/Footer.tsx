@@ -3,10 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Linkedin, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 import cactoLogo from "@/assets/cacto-logo.png";
-
 const Footer = () => {
-  return (
-    <footer className="bg-black border-t border-white/10">
+  return <footer className="bg-black border-t border-white/10">
       <div className="container mx-auto px-4 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           <div>
@@ -36,12 +34,8 @@ const Footer = () => {
                 <li><a href="#" className="text-white/70 hover:text-white transition-opacity">Preços</a></li>
               </ul>
             </div>
-            <div className="flex items-center justify-start pl-8 mt-12">
-              <img 
-                src={cactoLogo} 
-                alt="CACTO - Cognitive Analytics for Care, Technology & Outcomes" 
-                className="w-24 h-24 md:w-28 md:h-28 object-contain opacity-80 hover:opacity-100 transition-opacity"
-              />
+            <div className="flex items-center justify-start pl-8 mt-12 px-[3px] mx-[3px]">
+              <img src={cactoLogo} alt="CACTO - Cognitive Analytics for Care, Technology & Outcomes" className="w-24 h-24 md:w-28 md:h-28 object-contain opacity-80 hover:opacity-100 transition-opacity" />
             </div>
           </div>
           
@@ -61,11 +55,7 @@ const Footer = () => {
               Receba novidades e atualizações da plataforma.
             </p>
             <form className="flex flex-col space-y-4">
-              <Input
-                type="email"
-                placeholder="Seu email"
-                className="bg-white/5 border-white/10 placeholder:text-white/50 text-white"
-              />
+              <Input type="email" placeholder="Seu email" className="bg-white/5 border-white/10 placeholder:text-white/50 text-white" />
               <Button className="bg-rest-blue hover:bg-rest-cyan text-white rounded-full transition-colors">
                 Inscrever-se
               </Button>
@@ -79,8 +69,6 @@ const Footer = () => {
           </p>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
-
 export default Footer;
