@@ -210,12 +210,9 @@ const Auth = () => {
                       <SelectValue placeholder="Selecione sua profissão" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cardiologia">Cardiologia</SelectItem>
-                      <SelectItem value="endocrinologia">Endocrinologia</SelectItem>
-                      <SelectItem value="clinica-geral">Clínica Geral</SelectItem>
-                      <SelectItem value="pediatria">Pediatria</SelectItem>
-                      <SelectItem value="ginecologia">Ginecologia</SelectItem>
-                      <SelectItem value="outro">Outro</SelectItem>
+                      <SelectItem value="medico">Médico</SelectItem>
+                      <SelectItem value="nutricionista">Nutricionista</SelectItem>
+                      <SelectItem value="outro-profissional-saude">Outros Profissionais de Saúde</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
