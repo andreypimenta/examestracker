@@ -40,6 +40,28 @@ export function ExamUploadDialog({
     
     if (!uploadedFile) return;
     
+    // Validar tamanho do arquivo (50MB máximo)
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (uploadedFile.size > maxSize) {
+      toast({
+        variant: "destructive",
+        title: "Arquivo muito grande",
+        description: `O arquivo deve ter no máximo 50MB. Tamanho atual: ${(uploadedFile.size / 1024 / 1024).toFixed(2)}MB`,
+      });
+      return;
+    }
+    
+    // Validar nome do arquivo (sem caracteres especiais problemáticos)
+    const invalidCharsRegex = /[^\w\s.-]/g;
+    if (invalidCharsRegex.test(uploadedFile.name)) {
+      toast({
+        variant: "destructive",
+        title: "Nome de arquivo inválido",
+        description: "O nome do arquivo contém caracteres especiais (acentos, símbolos, etc.). Por favor, renomeie o arquivo usando apenas letras, números, pontos e hífens.",
+      });
+      return;
+    }
+    
     // Lista de tipos permitidos
     const allowedTypes = [
       "application/pdf",
@@ -82,7 +104,7 @@ export function ExamUploadDialog({
       "image/heif": [".heif"],
     },
     maxFiles: 1,
-    maxSize: 20 * 1024 * 1024, // 20MB
+    maxSize: 50 * 1024 * 1024, // 50MB
     disabled: uploading,
   });
 
@@ -144,7 +166,7 @@ export function ExamUploadDialog({
                   : "Arraste um documento ou imagem aqui"}
               </p>
               <p className="text-sm text-white/60">
-                PDF, JPG, PNG ou HEIC até 20MB
+                PDF, JPG, PNG ou HEIC até 50MB
               </p>
             </div>
           )}

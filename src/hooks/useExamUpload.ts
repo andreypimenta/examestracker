@@ -79,6 +79,17 @@ export function useExamUpload() {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState("");
 
+  // Função para sanitizar nomes de arquivo
+  const sanitizeFileName = (fileName: string): string => {
+    return fileName
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[^\w.-]/g, '_')         // Substitui caracteres especiais por _
+      .replace(/\s+/g, '_')             // Substitui espaços por _
+      .replace(/_+/g, '_')              // Remove underscores duplos
+      .toLowerCase();                   // Tudo minúsculo
+  };
+
   // Método original (manual)
   const uploadExam = async ({ patientId, file, examDate, onComplete }: UploadOptions) => {
     try {
@@ -106,9 +117,16 @@ export function useExamUpload() {
         contentType = typeMap[fileExtension] || 'application/octet-stream';
       }
 
-      console.log(`[Upload] Arquivo: ${file.name} | Ext: ${fileExtension} | Content-Type: ${contentType}`);
+      // 3. Sanitizar nome do arquivo
+      const sanitizedFileName = sanitizeFileName(file.name);
+      const timestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0].replace('T', '-');
+      const finalFileName = `${timestamp}-${sanitizedFileName}`;
 
-      // 3. Get upload URL from Edge Function (proxy to AWS)
+      console.log(`[Upload] Arquivo original: ${file.name}`);
+      console.log(`[Upload] Arquivo sanitizado: ${finalFileName}`);
+      console.log(`[Upload] Content-Type: ${contentType}`);
+
+      // 4. Get upload URL from Edge Function (proxy to AWS)
       const response = await fetch(EDGE_FUNCTION_URL, {
         method: "POST",
         headers: { 
@@ -118,7 +136,7 @@ export function useExamUpload() {
         body: JSON.stringify({
           action: "getUploadUrl",
           userId: patientId,
-          fileName: file.name,
+          fileName: finalFileName,
           contentType: contentType,
         }),
       });
@@ -128,14 +146,14 @@ export function useExamUpload() {
       const { uploadUrl, s3Key, contentType: awsContentType } = await response.json();
       setProgress(20);
 
-      // 4. Create exam record in Supabase (status: uploading)
+      // 5. Create exam record in Supabase (status: uploading)
       const { data: exam, error: examError } = await supabase
         .from("exams")
         .insert({
           patient_id: patientId,
           uploaded_by: user.id,
           aws_file_key: s3Key,
-          aws_file_name: file.name,
+          aws_file_name: finalFileName,
           exam_date: examDate?.toISOString().split("T")[0],
           processing_status: "uploading",
         })
@@ -145,9 +163,9 @@ export function useExamUpload() {
       if (examError) throw examError;
       setProgress(30);
 
-      // 5. Upload para S3 com Content-Type retornado pela AWS
+      // 6. Upload para S3 com Content-Type retornado pela AWS
       setStatus("Enviando arquivo...");
-      console.log(`[Upload] Enviando ${file.name} com Content-Type da AWS: ${awsContentType}`);
+      console.log(`[Upload] Enviando ${finalFileName} com Content-Type da AWS: ${awsContentType}`);
 
       const uploadResponse = await fetch(uploadUrl, {
         method: "PUT",
@@ -167,13 +185,13 @@ export function useExamUpload() {
       console.log('[Upload] ✅ Upload S3 bem-sucedido');
       setProgress(50);
 
-      // 6. Update status to 'processing'
+      // 7. Update status to 'processing'
       await supabase
         .from("exams")
         .update({ processing_status: "processing" })
         .eq("id", exam.id);
 
-      // 7. Start polling
+      // 8. Start polling
       setStatus("Processando com IA...");
       await pollExamStatus(patientId, s3Key, exam.id);
 
@@ -187,10 +205,25 @@ export function useExamUpload() {
       onComplete?.();
 
       return exam;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro no upload:", error);
-      toast.error("Erro no processamento", {
-        description: error instanceof Error ? error.message : "Erro desconhecido",
+      
+      // Identificar tipo de erro
+      let errorMessage = 'Erro no processamento';
+      let errorDetails = '';
+      
+      if (error.message?.includes('NoSuchKey') || error.message?.includes('InvalidS3ObjectException')) {
+        errorMessage = 'Erro ao acessar arquivo no servidor';
+        errorDetails = 'O arquivo pode ter caracteres especiais no nome. Tente renomeá-lo e fazer upload novamente.';
+      } else if (error.message?.includes('timeout') || error.message?.includes('Timeout')) {
+        errorMessage = 'Processamento em andamento';
+        errorDetails = 'O exame está demorando mais que o esperado, mas continuará sendo processado em segundo plano. Você será notificado quando estiver pronto.';
+      } else if (error instanceof Error) {
+        errorDetails = error.message;
+      }
+      
+      toast.error(errorMessage, {
+        description: errorDetails,
       });
       throw error;
     } finally {
