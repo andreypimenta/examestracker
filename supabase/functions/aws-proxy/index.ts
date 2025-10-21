@@ -17,9 +17,53 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const userId = url.searchParams.get('userId');
+    const action = url.searchParams.get('action');
 
+    // ============================================
+    // GET: Fetch correction stats
+    // ============================================
+    if (req.method === 'GET' && action === 'getCorrectionStats' && userId) {
+      console.log('[AWS Proxy] Fetching correction stats for userId:', userId);
+      
+      const response = await fetch(AWS_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'getCorrectionStats',
+          userId: userId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[AWS Proxy] GET correction stats error:', response.status, errorText);
+        throw new Error(`AWS Lambda error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('[AWS Proxy] Correction stats response:', JSON.stringify(data).substring(0, 500));
+      
+      let responseBody = data;
+      if (data.body && typeof data.body === 'string') {
+        try {
+          responseBody = JSON.parse(data.body);
+          console.log('[AWS Proxy] ✅ Stats body parsed:', responseBody);
+        } catch (e) {
+          console.error('[AWS Proxy] ❌ Failed to parse stats body:', e);
+        }
+      } else if (data.body && typeof data.body === 'object') {
+        responseBody = data.body;
+      }
+      
+      return new Response(JSON.stringify(responseBody), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ============================================
     // GET: Fetch exam status
-    if (req.method === 'GET' && userId) {
+    // ============================================
+    if (req.method === 'GET' && userId && !action) {
       const url = new URL(req.url);
       const s3Key = url.searchParams.get('s3Key');
       
@@ -71,9 +115,77 @@ serve(async (req) => {
       });
     }
 
-    // POST: Generate upload URL
+    // ============================================
+    // POST: Save correction
+    // ============================================
     if (req.method === 'POST') {
       const body = await req.json();
+      
+      if (body.action === 'saveCorrection') {
+        console.log('[AWS Proxy] Saving user correction:', body);
+        
+        // Validar campos obrigatórios
+        if (!body.userId || !body.examId || !body.fieldName || !body.userValue) {
+          console.error('[AWS Proxy] Missing required fields for correction');
+          return new Response(
+            JSON.stringify({ error: 'Missing required fields: userId, examId, fieldName, userValue' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Validar fieldName permitido
+        const ALLOWED_FIELDS = ['paciente', 'laboratorio', 'data_exame', 'data_nascimento'];
+        if (!ALLOWED_FIELDS.includes(body.fieldName)) {
+          console.error('[AWS Proxy] Invalid field name:', body.fieldName);
+          return new Response(
+            JSON.stringify({ error: `Invalid field name. Allowed: ${ALLOWED_FIELDS.join(', ')}` }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        const response = await fetch(AWS_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'saveCorrection',
+            userId: body.userId,
+            examId: body.examId,
+            fieldName: body.fieldName,
+            aiValue: body.aiValue || null,
+            userValue: body.userValue,
+            textSample: body.textSample || null,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[AWS Proxy] POST saveCorrection error:', response.status, errorText);
+          throw new Error(`AWS Lambda error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('[AWS Proxy] Save correction response:', data);
+        
+        let responseBody = data;
+        if (data.body && typeof data.body === 'string') {
+          try {
+            responseBody = JSON.parse(data.body);
+            console.log('[AWS Proxy] ✅ Correction saved successfully');
+          } catch (e) {
+            console.error('[AWS Proxy] ❌ Failed to parse correction response:', e);
+          }
+        } else if (data.body && typeof data.body === 'object') {
+          responseBody = data.body;
+        }
+        
+        return new Response(JSON.stringify(responseBody), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // ============================================
+      // POST: Generate upload URL
+      // ============================================
       console.log('[AWS Proxy] POST request:', body);
       
       // Receber contentType do cliente (se fornecido)
