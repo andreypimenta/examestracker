@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
@@ -11,6 +12,7 @@ import { AIAccuracyStats } from "@/components/AIAccuracyStats";
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { isAdmin } = useUserRole();
 
   // Query: Estatísticas gerais
   const { data: stats } = useQuery({
@@ -116,7 +118,7 @@ const Dashboard = () => {
           {/* Sidebar (1/3) */}
           <div className="space-y-6">
             <QuickActions />
-            <AIAccuracyStats />
+            {isAdmin && <AIAccuracyStats />}
           </div>
         </div>
       </main>

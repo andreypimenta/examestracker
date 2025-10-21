@@ -1,7 +1,13 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 
 const AWS_API_URL = "https://55oeqt4sk2.execute-api.us-east-1.amazonaws.com/prod/exam-url";
+
+const supabaseClient = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,6 +30,20 @@ serve(async (req) => {
     // ============================================
     if (req.method === 'GET' && action === 'getCorrectionStats' && userId) {
       console.log('[AWS Proxy] Fetching correction stats for userId:', userId);
+
+      // Verificar se o usuário é admin
+      const { data: userRoles, error: roleError } = await supabaseClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+
+      if (roleError || !userRoles || !userRoles.some(r => r.role === 'admin')) {
+        console.log('[AWS Proxy] Access denied: User is not admin');
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: Admin access required' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       
       const response = await fetch(AWS_API_URL, {
         method: 'POST',
