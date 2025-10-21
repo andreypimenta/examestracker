@@ -134,7 +134,7 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col bg-gradient-to-br from-rest-black via-rest-charcoal to-rest-black border-white/10">
+      <DialogContent className="w-[95vw] max-w-6xl max-h-[90vh] overflow-hidden flex flex-col bg-gradient-to-br from-rest-black via-rest-charcoal to-rest-black border-white/10">
         <DialogHeader>
           <DialogTitle className="text-2xl text-white">
             📊 Resultados do Exame
@@ -203,7 +203,7 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
             </div>
 
             {/* Tabela */}
-            <div className="flex-1 overflow-auto border border-white/10 rounded-lg bg-white/5 backdrop-blur-sm">
+            <div className="flex-1 overflow-x-auto overflow-y-auto border border-white/10 rounded-lg bg-white/5 backdrop-blur-sm">
               {isLoading ? (
                 <div className="space-y-2 p-4">
                   {[...Array(10)].map((_, i) => (
@@ -214,11 +214,11 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
                 <Table>
                   <TableHeader className="sticky top-0 bg-white/10 backdrop-blur-sm z-10">
                     <TableRow>
-                      <TableHead className="w-[30%] text-white font-bold">Biomarcador</TableHead>
-                      <TableHead className="text-right text-white font-bold">Valor</TableHead>
-                      <TableHead className="text-right text-white font-bold">Referência</TableHead>
-                      <TableHead className="text-center text-white font-bold">Status</TableHead>
-                      <TableHead className="text-white font-bold">Categoria</TableHead>
+                      <TableHead className="sticky left-0 z-20 bg-white/10 backdrop-blur-sm text-white font-bold min-w-[180px] border-r border-white/10">Biomarcador</TableHead>
+                      <TableHead className="text-right text-white font-bold min-w-[100px]">Valor</TableHead>
+                      <TableHead className="text-right text-white font-bold min-w-[120px]">Referência</TableHead>
+                      <TableHead className="text-center text-white font-bold min-w-[90px]">Status</TableHead>
+                      <TableHead className="text-white font-bold min-w-[110px]">Categoria</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -235,7 +235,7 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
                         
                         return (
                           <TableRow key={result.id} className="border-b border-white/5 hover:bg-white/5">
-                            <TableCell className="font-medium text-white">
+                            <TableCell className="sticky left-0 z-10 bg-white/5 backdrop-blur-sm font-medium text-white border-r border-white/10">
                               {result.biomarker_name}
                             </TableCell>
                             <TableCell className="text-right">
@@ -272,6 +272,12 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
                 </Table>
               )}
             </div>
+
+            {examData && filteredResults.length > 2 && (
+              <div className="sm:hidden text-center text-xs text-white/50 py-2 animate-pulse">
+                ← Deslize para ver todas as colunas →
+              </div>
+            )}
 
             <div className="text-xs text-white/70 text-center">
               Mostrando {filteredResults.length} de {stats.total} biomarcadores
