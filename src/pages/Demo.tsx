@@ -271,7 +271,7 @@ const Demo = () => {
                   <p className="text-white/70">Visualize tendências ao longo do tempo</p>
                 </div>
                 
-                <div className="grid md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {mockBiomarkerData.map((biomarker, index) => (
                     <div key={index} className="animate-fade-in" style={{ animationDelay: `${index * 0.2}s` }}>
                       <BiomarkerChart

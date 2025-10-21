@@ -62,22 +62,22 @@ export function BiomarkerChart({
         </CardDescription>
       </CardHeader>
       <CardContent className="p-4 sm:p-6">
-        <ChartContainer config={chartConfig} className="h-[300px] sm:h-[400px] lg:h-[500px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
+        <ChartContainer config={chartConfig} className="h-[300px] sm:h-[400px] lg:h-[500px] w-full max-w-full overflow-hidden">
+          <ResponsiveContainer width="99%" height="100%">
+            <LineChart data={chartData} margin={{ top: 10, right: 20, left: 5, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
               
               <XAxis 
                 dataKey="date" 
                 className="text-sm"
                 tick={{ fill: 'rgba(255, 255, 255, 0.7)' }}
-                height={60}
+                height={50}
               />
               
               <YAxis 
                 className="text-sm"
                 tick={{ fill: 'rgba(255, 255, 255, 0.7)' }}
-                width={60}
+                width={50}
               />
               
               <ChartTooltip 
@@ -128,7 +128,6 @@ export function BiomarkerChart({
                   y2={referenceMax}
                   fill="hsl(var(--primary))"
                   fillOpacity={0.1}
-                  label={{ value: 'Faixa Normal', position: 'insideTopRight', fill: 'hsl(var(--muted-foreground))' }}
                 />
               )}
               
