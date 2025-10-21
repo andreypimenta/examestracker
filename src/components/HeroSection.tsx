@@ -50,7 +50,7 @@ const HeroSection = () => {
                 </span>
               </h1>
               <p className="text-xl md:text-2xl text-white/80 max-w-2xl leading-relaxed">
-                Plataforma inteligente de gestão de exames médicos com IA. Automatize a análise de laudos e visualize a evolução dos seus pacientes.
+                Plataforma Inteligente de gestão de exames com IA. Automatize a análise de laudos e visualize a evolução dos seus pacientes.
               </p>
             </div>
 
