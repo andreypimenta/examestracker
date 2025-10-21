@@ -41,12 +41,6 @@ const HeroSection = () => {
         <div className="grid lg:grid-cols-2 gap-12 items-center w-full">
           {/* Left Content */}
           <div className={`space-y-8 ${isVisible ? 'animate-fade-in' : 'opacity-0'}`}>
-            {/* Badge */}
-            <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-rest-blue/20 to-rest-cyan/10 rounded-full border border-rest-blue/30 backdrop-blur-sm">
-              <Shield className="w-4 h-4 text-rest-lightblue mr-2" />
-              <span className="text-sm font-medium text-white">Plataforma de Acompanhamento de Exames Médicos</span>
-            </div>
-
             {/* Main Headline */}
             <div className="space-y-4">
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight tracking-tight">
