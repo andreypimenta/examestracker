@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      corrections: {
+        Row: {
+          ai_value: string | null
+          correction_type: string | null
+          created_at: string | null
+          exam_id: string
+          field_name: string
+          id: string
+          text_sample: string | null
+          updated_at: string | null
+          used_for_training: boolean | null
+          user_id: string
+          user_value: string
+        }
+        Insert: {
+          ai_value?: string | null
+          correction_type?: string | null
+          created_at?: string | null
+          exam_id: string
+          field_name: string
+          id?: string
+          text_sample?: string | null
+          updated_at?: string | null
+          used_for_training?: boolean | null
+          user_id: string
+          user_value: string
+        }
+        Update: {
+          ai_value?: string | null
+          correction_type?: string | null
+          created_at?: string | null
+          exam_id?: string
+          field_name?: string
+          id?: string
+          text_sample?: string | null
+          updated_at?: string | null
+          used_for_training?: boolean | null
+          user_id?: string
+          user_value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corrections_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exam_results: {
         Row: {
           biomarker_name: string
@@ -174,6 +224,7 @@ export type Database = {
       }
       patients: {
         Row: {
+          birth_date: string | null
           cpf: string | null
           created_at: string | null
           date_of_birth: string | null
@@ -186,6 +237,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          birth_date?: string | null
           cpf?: string | null
           created_at?: string | null
           date_of_birth?: string | null
@@ -198,6 +250,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          birth_date?: string | null
           cpf?: string | null
           created_at?: string | null
           date_of_birth?: string | null
