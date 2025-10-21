@@ -214,55 +214,45 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
                 <Table>
                   <TableHeader className="sticky top-0 bg-white/10 backdrop-blur-sm z-10">
                     <TableRow>
-                      <TableHead className="sticky left-0 z-20 bg-white/10 backdrop-blur-sm text-white font-bold min-w-[180px] border-r border-white/10">Biomarcador</TableHead>
-                      <TableHead className="text-right text-white font-bold min-w-[100px]">Valor</TableHead>
-                      <TableHead className="text-right text-white font-bold min-w-[120px]">Referência</TableHead>
-                      <TableHead className="text-center text-white font-bold min-w-[90px]">Status</TableHead>
-                      <TableHead className="text-white font-bold min-w-[110px]">Categoria</TableHead>
+                      <TableHead className="sticky left-0 z-20 bg-white/10 backdrop-blur-sm text-white font-bold min-w-[140px] border-r border-white/10">Biomarcador</TableHead>
+                      <TableHead className="text-right text-white font-bold min-w-[80px]">Valor</TableHead>
+                      <TableHead className="text-right text-white font-bold min-w-[100px]">Referência</TableHead>
+                      <TableHead className="text-center text-white font-bold min-w-[80px]">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredResults.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-white/70 py-8">
+                        <TableCell colSpan={4} className="text-center text-white/70 py-8">
                           Nenhum resultado encontrado
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredResults.map((result) => {
-                        const category = categorizeBiomarker(result.biomarker_name);
-                        const categoryColor = getCategoryColor(category);
-                        
                         return (
                           <TableRow key={result.id} className="border-b border-white/5 hover:bg-white/5">
                             <TableCell className="sticky left-0 z-10 bg-white/5 backdrop-blur-sm font-medium text-white border-r border-white/10">
                               {result.biomarker_name}
                             </TableCell>
                             <TableCell className="text-right">
-                              <span className="font-mono text-white">
-                                {result.value} {result.unit}
+                              <span className="text-white font-mono">
+                                {result.value}
                               </span>
+                              {result.unit && (
+                                <span className="text-white/50 ml-1 text-xs">
+                                  {result.unit}
+                                </span>
+                              )}
                             </TableCell>
-                            <TableCell className="text-right text-white/70">
-                              {result.reference_min && result.reference_max
-                                ? `${result.reference_min} - ${result.reference_max}`
-                                : "N/A"}
+                            <TableCell className="text-right">
+                              <span className="text-white/70 font-mono text-sm">
+                                {result.reference_min && result.reference_max
+                                  ? `${result.reference_min} - ${result.reference_max}`
+                                  : "N/A"}
+                              </span>
                             </TableCell>
                             <TableCell className="text-center">
                               {getStatusBadge(result.status)}
-                            </TableCell>
-                            <TableCell>
-                              <span
-                                className="inline-block px-2 py-1 rounded text-xs font-medium"
-                                style={{
-                                  backgroundColor: `${categoryColor}20`,
-                                  color: categoryColor,
-                                  borderColor: `${categoryColor}40`,
-                                  borderWidth: "1px",
-                                }}
-                              >
-                                {category.charAt(0).toUpperCase() + category.slice(1)}
-                              </span>
                             </TableCell>
                           </TableRow>
                         );
@@ -272,12 +262,6 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
                 </Table>
               )}
             </div>
-
-            {examData && filteredResults.length > 2 && (
-              <div className="sm:hidden text-center text-xs text-white/50 py-2 animate-pulse">
-                ← Deslize para ver todas as colunas →
-              </div>
-            )}
 
             <div className="text-xs text-white/70 text-center">
               Mostrando {filteredResults.length} de {stats.total} biomarcadores
