@@ -130,6 +130,7 @@ export default function PatientDashboard() {
           )
         `)
         .eq('exams.patient_id', id)
+        .not('exams.exam_date', 'is', null)
         .order('exam_date', { ascending: true, foreignTable: 'exams' })
         .order('created_at', { ascending: false, foreignTable: 'exams' });
       

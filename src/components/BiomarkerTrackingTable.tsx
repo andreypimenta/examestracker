@@ -216,7 +216,7 @@ export function BiomarkerTrackingTable({ data, examDates, patientName, initialCa
                 </TableHead>
                 {examDates.map((dateKey, index) => {
                   const [examId, date] = dateKey.split('|');
-                  if (!date || !examId) return null;
+                  if (!date || date === 'null' || !examId) return null;
                   
                   // Validar se a data é válida antes de formatar
                   const parsedDate = new Date(date);
