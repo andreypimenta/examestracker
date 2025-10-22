@@ -296,12 +296,11 @@ export default function PatientDashboard() {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Button
-                variant="outline"
                 onClick={() => {
                   setSelectedCategory(null);
                   setViewMode('categories');
                 }}
-                className="border-white/20 text-white hover:bg-white/10"
+                className="bg-gradient-to-r from-rest-blue to-rest-cyan text-white hover:opacity-90"
               >
                 ← Voltar às categorias
               </Button>
