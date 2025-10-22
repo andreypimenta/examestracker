@@ -266,54 +266,88 @@ export function useExamUpload() {
         }
 
         try {
-          // Fetch status from Edge Function (proxy to AWS)
-          console.log(`[Polling] Tentativa ${attempts}/${maxAttempts} (${elapsedSeconds}s) - Verificando status para s3Key: ${s3Key}`);
+          // ========================================
+          // 🆕 POLLING HÍBRIDO: Verificar 2 fontes
+          // ========================================
+          
+          // 1️⃣ Verificar Supabase PRIMEIRO (mais confiável após webhook)
+          console.log(`[Polling Híbrido] Tentativa ${attempts}/${maxAttempts} (${elapsedSeconds}s)`);
+          
+          const { data: examData, error: examError } = await supabase
+            .from('exams')
+            .select('processing_status, total_biomarkers, patient_name_extracted')
+            .eq('id', examId)
+            .single();
+          
+          if (!examError && examData) {
+            console.log(`[Polling Híbrido] Status no Supabase:`, examData.processing_status);
+            
+            // ✅ Se o webhook já atualizou o Supabase, parar imediatamente
+            if (examData.processing_status === 'completed') {
+              console.log(`[Polling Híbrido] ✅ Exame concluído (detectado via Supabase após ${elapsedSeconds}s)!`);
+              console.log(`[Polling Híbrido] Total de biomarcadores: ${examData.total_biomarkers}`);
+              clearInterval(interval);
+              resolve();
+              return;
+            }
+            
+            // ❌ Se falhou no Supabase, parar com erro
+            if (examData.processing_status === 'error') {
+              console.error(`[Polling Híbrido] ❌ Erro detectado no Supabase`);
+              clearInterval(interval);
+              reject(new Error('Erro no processamento do exame'));
+              return;
+            }
+          }
+          
+          // 2️⃣ Se Supabase ainda está 'processing', verificar AWS também
+          console.log(`[Polling Híbrido] Verificando AWS...`);
           
           const response = await fetch(`${EDGE_FUNCTION_URL}?userId=${userId}&s3Key=${encodeURIComponent(s3Key)}`, {
             headers: {
               "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             }
           });
-          if (!response.ok) throw new Error("Erro ao verificar status");
+          
+          if (!response.ok) {
+            console.warn('[Polling Híbrido] Erro na AWS, mas Supabase será checado novamente');
+            // Não rejeitar - continuar tentando via Supabase
+          } else {
+            const data = await response.json();
+            console.log(`[Polling Híbrido] Resposta AWS:`, data);
 
-          const data = await response.json();
-          console.log(`[Polling] Resposta AWS:`, data);
-
-          // Se retornou status diretamente (novo formato)
-          if (data.status) {
+            // Se AWS retornou status 'completed'
             if (data.status === 'completed' && data.data) {
-              console.log(`[Polling] ✅ Processamento concluído após ${elapsedSeconds}s!`);
+              console.log(`[Polling Híbrido] ✅ Processamento concluído (detectado via AWS após ${elapsedSeconds}s)!`);
               clearInterval(interval);
               await syncExamToSupabase(examId, data);
               resolve();
               return;
             } else if (data.status === 'processing') {
-              console.log(`[Polling] ⏳ Ainda processando...`);
-              // Continua o loop
+              console.log(`[Polling Híbrido] ⏳ AWS ainda processando...`);
             }
-          } else {
-            // Formato antigo (fallback)
-            console.warn('[Polling] Formato de resposta legado - migre para novo formato');
           }
 
-          // Timeout check
+          // 3️⃣ Timeout check
           if (attempts >= maxAttempts) {
-            // Timeout após 3 minutos - deixar em background
-            console.log(`[Polling] ⏱️ Timeout após ${elapsedSeconds}s - processamento continuará em background via webhook`);
+            console.log(`[Polling Híbrido] ⏱️ Timeout após ${elapsedSeconds}s - processamento continuará em background via webhook`);
             clearInterval(interval);
             
-            // NÃO marcar como erro - o webhook cuidará da atualização
             toast.info("Processamento em andamento", {
-              description: "Seu exame está sendo processado em background. Você pode sair do app - atualizaremos automaticamente quando estiver pronto.",
+              description: "Seu exame está sendo processado em background. Recarregue a página em alguns minutos para ver o resultado.",
               duration: 6000,
             });
             
-            resolve(); // Resolver sem erro para não bloquear UI
+            resolve();
           }
         } catch (error) {
-          console.error(`[Polling] Erro na tentativa ${attempts}:`, error);
-          clearInterval(interval);
-          reject(error);
+          console.error(`[Polling Híbrido] Erro na tentativa ${attempts}:`, error);
+          
+          // Não rejeitar imediatamente - continuar tentando
+          if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            reject(error);
+          }
         }
       }, 3000); // Poll every 3 seconds
     });
