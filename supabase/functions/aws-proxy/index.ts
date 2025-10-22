@@ -14,6 +14,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Campos permitidos para correções
+const ALLOWED_HEADER_FIELDS = ['paciente', 'laboratorio', 'data_exame', 'data_nascimento'];
+const ALLOWED_BIOMARKER_FIELDS = ['biomarker_name', 'biomarker_value', 'biomarker_unit', 'reference_min', 'reference_max', 'biomarker_status'];
+const ALL_ALLOWED_FIELDS = [...ALLOWED_HEADER_FIELDS, ...ALLOWED_BIOMARKER_FIELDS];
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -154,10 +159,6 @@ serve(async (req) => {
         }
 
         // Validar fieldName permitido
-        const ALLOWED_HEADER_FIELDS = ['paciente', 'laboratorio', 'data_exame', 'data_nascimento'];
-        const ALLOWED_BIOMARKER_FIELDS = ['biomarker_name', 'biomarker_value', 'biomarker_unit', 'reference_min', 'reference_max', 'biomarker_status'];
-        const ALL_ALLOWED_FIELDS = [...ALLOWED_HEADER_FIELDS, ...ALLOWED_BIOMARKER_FIELDS];
-        
         if (!ALL_ALLOWED_FIELDS.includes(body.fieldName)) {
           console.error('[AWS Proxy] Invalid field name:', body.fieldName);
           return new Response(
@@ -223,7 +224,6 @@ serve(async (req) => {
         }
 
         // Validar cada correção no array
-        const ALLOWED_BIOMARKER_FIELDS = ['biomarker_name', 'biomarker_value', 'biomarker_unit', 'reference_min', 'reference_max', 'biomarker_status'];
         for (const correction of body.corrections) {
           if (!correction.biomarkerId || !correction.fieldName || !correction.userValue) {
             return new Response(

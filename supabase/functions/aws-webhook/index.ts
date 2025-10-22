@@ -202,8 +202,10 @@ serve(async (req) => {
       }
     };
 
-    // Start background task
-    EdgeRuntime.waitUntil(backgroundTask());
+    // Start background task (fire and forget)
+    backgroundTask().catch(err => {
+      console.error('Background task failed:', err);
+    });
 
     // Return immediate response to AWS
     return new Response(
@@ -220,8 +222,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in aws-webhook function:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
