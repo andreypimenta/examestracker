@@ -130,7 +130,6 @@ export default function PatientDashboard() {
           )
         `)
         .eq('exams.patient_id', id)
-        .not('exams.exam_date', 'is', null)
         .order('exam_date', { ascending: true, foreignTable: 'exams' })
         .order('created_at', { ascending: false, foreignTable: 'exams' });
       
@@ -143,10 +142,11 @@ export default function PatientDashboard() {
       data?.forEach((result: any) => {
         const key = result.biomarker_name;
         const examId = result.exams.id;
-        const examDate = result.exams.exam_date;
+        const examDate = result.exams.exam_date || result.exams.created_at;
+        const isEstimatedDate = !result.exams.exam_date;
         
         // Cada exam_id gera uma coluna única
-        examDatesSet.add(`${examId}|${examDate}`);
+        examDatesSet.add(`${examId}|${examDate}|${isEstimatedDate ? 'estimated' : 'manual'}`);
 
         if (!biomarkerMap.has(key)) {
           biomarkerMap.set(key, {

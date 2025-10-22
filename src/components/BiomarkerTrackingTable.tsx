@@ -2,7 +2,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Download, TrendingUp, TrendingDown, Minus, AlertCircle, Pencil } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ExamDateEditDialog } from './ExamDateEditDialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -36,6 +38,8 @@ interface BiomarkerTrackingTableProps {
 
 export function BiomarkerTrackingTable({ data, examDates, patientName, initialCategory }: BiomarkerTrackingTableProps) {
   const [categoryFilter, setCategoryFilter] = useState<string>(initialCategory || 'all');
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedExam, setSelectedExam] = useState<{ id: string; date: string; isEstimated: boolean } | null>(null);
 
   // Obter categorias únicas
   const categories = Array.from(new Set(data.map(d => d.category).filter(Boolean)));
@@ -215,10 +219,10 @@ export function BiomarkerTrackingTable({ data, examDates, patientName, initialCa
                   Biomarcador
                 </TableHead>
                 {examDates.map((dateKey, index) => {
-                  const [examId, date] = dateKey.split('|');
+                  const [examId, date, source] = dateKey.split('|');
                   if (!date || date === 'null' || !examId) return null;
                   
-                  // Validar se a data é válida antes de formatar
+                  const isEstimated = source === 'estimated';
                   const parsedDate = new Date(date);
                   if (isNaN(parsedDate.getTime())) return null;
                   
@@ -227,7 +231,39 @@ export function BiomarkerTrackingTable({ data, examDates, patientName, initialCa
                       key={examId} 
                       className="text-center text-white font-bold min-w-[100px]"
                     >
-                      {format(parsedDate, 'dd/MM/yy', { locale: ptBR })}
+                      <TooltipProvider>
+                        <div className="flex items-center justify-center gap-1">
+                          <span>{format(parsedDate, 'dd/MM/yy', { locale: ptBR })}</span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 hover:bg-white/10"
+                                onClick={() => {
+                                  setSelectedExam({ id: examId, date, isEstimated });
+                                  setEditDialogOpen(true);
+                                }}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Editar data do exame</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          {isEstimated && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <AlertCircle className="h-4 w-4 text-amber-500" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Data estimada (baseada no upload)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TooltipProvider>
                     </TableHead>
                   );
                 })}
@@ -318,6 +354,16 @@ export function BiomarkerTrackingTable({ data, examDates, patientName, initialCa
           </div>
         )}
       </CardContent>
+
+      {selectedExam && (
+        <ExamDateEditDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          examId={selectedExam.id}
+          currentDate={selectedExam.date}
+          isEstimated={selectedExam.isEstimated}
+        />
+      )}
     </Card>
   );
 }
