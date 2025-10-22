@@ -141,9 +141,11 @@ export default function PatientDashboard() {
 
       data?.forEach((result: any) => {
         const key = result.biomarker_name;
+        const examId = result.exams.id;
         const examDate = result.exams.exam_date;
         
-        examDatesSet.add(examDate);
+        // Cada exam_id gera uma coluna única
+        examDatesSet.add(`${examId}|${examDate}`);
 
         if (!biomarkerMap.has(key)) {
           biomarkerMap.set(key, {
@@ -158,10 +160,10 @@ export default function PatientDashboard() {
 
         const biomarkerData = biomarkerMap.get(key)!;
         
-        // Só adiciona se ainda não existe valor para essa data
-        // (mantém o primeiro, que é o mais recente devido ao ORDER BY created_at DESC)
-        if (!biomarkerData.values.has(examDate)) {
-          biomarkerData.values.set(examDate, {
+        // Cada exam_id gera um valor único (mesmo que a data seja igual)
+        if (!biomarkerData.values.has(examId)) {
+          biomarkerData.values.set(examId, {
+            exam_id: examId,
             exam_date: examDate,
             value: result.value,
             value_numeric: result.value_numeric,

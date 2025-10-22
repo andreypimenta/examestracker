@@ -11,6 +11,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 interface BiomarkerValue {
+  exam_id: string;
   exam_date: string;
   value: string;
   value_numeric: number | null;
@@ -74,8 +75,9 @@ export function BiomarkerTrackingTable({ data, examDates, patientName, initialCa
         ? `${row.reference_min}-${row.reference_max}`
         : '-';
       
-      const values = examDates.map(date => {
-        const value = row.values.find(v => v.exam_date === date);
+      const values = examDates.map(dateKey => {
+        const [examId] = dateKey.split('|');
+        const value = row.values.find(v => v.exam_id === examId);
         return value ? value.value : '-';
       });
 
@@ -211,14 +213,17 @@ export function BiomarkerTrackingTable({ data, examDates, patientName, initialCa
                 <TableHead className="sticky left-0 z-20 bg-white/10 backdrop-blur-sm text-white font-bold min-w-[180px] border-r border-white/10">
                   Biomarcador
                 </TableHead>
-                {examDates.map((date, index) => (
-                  <TableHead 
-                    key={date} 
-                    className="text-center text-white font-bold min-w-[100px]"
-                  >
-                    {format(new Date(date), 'dd/MM/yy', { locale: ptBR })}
-                  </TableHead>
-                ))}
+                {examDates.map((dateKey, index) => {
+                  const [examId, date] = dateKey.split('|');
+                  return (
+                    <TableHead 
+                      key={examId} 
+                      className="text-center text-white font-bold min-w-[100px]"
+                    >
+                      {format(new Date(date), 'dd/MM/yy', { locale: ptBR })}
+                    </TableHead>
+                  );
+                })}
                 <TableHead className="text-white font-bold min-w-[80px]">
                   Unidade
                 </TableHead>
@@ -244,13 +249,14 @@ export function BiomarkerTrackingTable({ data, examDates, patientName, initialCa
                       {row.biomarker_name}
                     </TableCell>
                     
-                    {examDates.map((date, index) => {
-                      const value = row.values.find(v => v.exam_date === date);
+                    {examDates.map((dateKey, index) => {
+                      const [examId] = dateKey.split('|');
+                      const value = row.values.find(v => v.exam_id === examId);
                       const isLatestExam = index === examDates.length - 1;
                       
                       return (
                         <TableCell 
-                          key={date}
+                          key={examId}
                           className={cn(
                             "text-center font-semibold",
                             value && getStatusColor(value.status)
