@@ -75,13 +75,23 @@ export default {
 					dark: 'hsl(0, 0%, 0%)'
 				},
 				medical: {
-					success: 'hsl(142, 60%, 38%)',
-					warning: 'hsl(38, 85%, 52%)',
-					critical: 'hsl(0, 65%, 52%)',
-					info: 'hsl(199, 85%, 38%)',
-					purple: 'hsl(271, 81%, 56%)',
-					'purple-dark': 'hsl(271, 91%, 25%)',
-					'purple-light': 'hsl(271, 100%, 95%)'
+					success: '#10B981',
+					warning: '#F59E0B',
+					critical: '#EF4444',
+					info: '#3B82F6',
+					purple: {
+						DEFAULT: '#6B46C1',
+						50: '#F5F3FF',
+						100: '#EDE9FE',
+						200: '#DDD6FE',
+						300: '#C4B5FD',
+						400: '#A78BFA',
+						500: '#8B5CF6',
+						600: '#7C3AED',
+						700: '#6D28D9',
+						800: '#5B21B6',
+						900: '#4C1D95',
+					}
 				}
 			},
 			borderRadius: {

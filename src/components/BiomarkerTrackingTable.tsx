@@ -203,42 +203,45 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
   }
 
   return (
-    <Card className="bg-white border border-gray-200 shadow-lg rounded-2xl overflow-hidden">
-      {/* Header roxo */}
-      <CardHeader className="bg-gradient-to-r from-medical-purple to-medical-purple/90 text-white border-none">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <Card className="bg-white border-0 shadow-2xl rounded-3xl overflow-hidden">
+      <CardHeader className="bg-gradient-to-br from-gray-50 via-white to-gray-50 border-b-2 border-gray-100 px-8 py-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <CardTitle className="text-white text-2xl font-bold tracking-tight">
-              Tabela de Acompanhamento Longitudinal
+            <CardTitle className="text-3xl font-bold text-gray-900 mb-2">
+              Histórico Completo
             </CardTitle>
-            <CardDescription className="text-purple-100 text-base mt-2 font-medium">
-              Evolução completa de todos os biomarcadores ao longo do tempo
+            <CardDescription className="text-gray-600 text-base">
+              Acompanhamento longitudinal de todos os biomarcadores
             </CardDescription>
           </div>
           
-          <div className="flex items-center gap-2">
-            {categories.length > 0 && (
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-[200px] bg-white/20 border-white/30 text-white hover:bg-white/30">
-                  <SelectValue placeholder="Todas as Categorias" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as Categorias</SelectItem>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            
-            <Button 
+          <div className="flex items-center gap-3 flex-wrap">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-[220px] h-12 bg-white border-2 border-gray-200 hover:border-medical-purple-600 rounded-xl font-semibold">
+                <div className="w-2 h-2 rounded-full bg-gradient-to-r from-medical-purple-600 to-purple-600 mr-2" />
+                <SelectValue placeholder="Filtrar categoria" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl shadow-2xl">
+                <SelectItem value="all" className="rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-gradient-to-r from-medical-purple-600 to-purple-600" />
+                    Todas as Categorias
+                  </div>
+                </SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat} value={cat} className="rounded-lg">
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button
               onClick={exportToPDF}
-              className="bg-white text-medical-purple hover:bg-gray-100 font-semibold rounded-full"
+              className="h-12 bg-gradient-to-r from-medical-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700 text-white font-semibold px-6 rounded-xl shadow-lg"
             >
               <Download className="w-4 h-4 mr-2" />
-              Exportar PDF
+              Exportar
             </Button>
           </div>
         </div>
@@ -248,8 +251,8 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-gradient-to-r from-gray-100 to-gray-50 border-b-2 border-gray-300">
-                <TableHead className="sticky left-0 z-20 bg-gray-100 text-gray-900 font-bold text-sm uppercase tracking-wide min-w-[180px] border-r border-gray-300">
+              <TableRow className="bg-gradient-to-r from-gray-50 to-white border-b-2 border-gray-200 hover:bg-gray-50">
+                <TableHead className="sticky left-0 z-20 bg-gray-50 text-gray-900 font-bold text-xs uppercase tracking-wider py-5 px-6">
                   Biomarcador
                 </TableHead>
                 {examDates.map((dateKey, index) => {

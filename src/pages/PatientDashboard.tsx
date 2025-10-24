@@ -2,23 +2,30 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Activity, Calendar } from 'lucide-react';
+import { Activity, Calendar, ArrowLeft, Heart, Activity as ActivityIcon, Zap } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { BiomarkerChart } from '@/components/BiomarkerChart';
 import { BiomarkerCategoryCard } from '@/components/BiomarkerCategoryCard';
-import { ExamComparisonTable } from '@/components/ExamComparisonTable';
 import { BiomarkerTrackingTable } from '@/components/BiomarkerTrackingTable';
+import { HeroStats } from '@/components/HeroStats';
+import { CriticalAlertsCard } from '@/components/CriticalAlertsCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { BIOMARKER_CATEGORIES, categorizeBiomarker, CategoryKey } from '@/utils/biomarkerCategories';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Heart, Activity as ActivityIcon, Droplet, Bone, Brain, Apple, Zap } from 'lucide-react';
+
+const getCategoryIcon = (category: CategoryKey) => {
+  const icons: Record<CategoryKey, React.ReactNode> = {
+    cardiovascular: <Heart className="w-7 h-7" />,
+    metabolico: <ActivityIcon className="w-7 h-7" />,
+    hematologico: <Droplet className="w-7 h-7" />,
+    osso_mineral: <Bone className="w-7 h-7" />,
+    hormonal: <Brain className="w-7 h-7" />,
+    nutricional: <Apple className="w-7 h-7" />,
+    outros: <Zap className="w-7 h-7" />,
+  };
+  return icons[category];
+};
 import { subDays } from 'date-fns';
 
 type PeriodFilter = 'all' | '30' | '90' | '180' | '365';
@@ -28,6 +35,7 @@ interface BiomarkerData {
   unit: string | null;
   reference_min: number | null;
   reference_max: number | null;
+  status: 'normal' | 'alto' | 'baixo';
   history: Array<{
     exam_date: string;
     value_numeric: number;
@@ -41,7 +49,6 @@ export default function PatientDashboard() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey | null>(null);
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all');
-  const [viewMode, setViewMode] = useState<'categories' | 'table'>('categories');
 
   // Buscar informações do paciente
   const { data: patient } = useQuery({
@@ -75,7 +82,6 @@ export default function PatientDashboard() {
         .eq('exams.patient_id', id)
         .order('exam_date', { ascending: true, foreignTable: 'exams' });
 
-      // Aplicar filtro de período
       if (periodFilter !== 'all') {
         const daysAgo = subDays(new Date(), parseInt(periodFilter));
         query = query.gte('exams.exam_date', daysAgo.toISOString());
@@ -96,6 +102,7 @@ export default function PatientDashboard() {
             unit: result.unit,
             reference_min: result.reference_min,
             reference_max: result.reference_max,
+            status: result.status,
             history: []
           });
         }
@@ -153,7 +160,6 @@ export default function PatientDashboard() {
         const examDate = result.exams.exam_date || result.exams.created_at;
         const isEstimatedDate = !result.exams.exam_date;
         
-        // Cada exam_id gera uma coluna única
         examDatesSet.add(`${examId}|${examDate}|${isEstimatedDate ? 'estimated' : 'manual'}`);
 
         if (!biomarkerMap.has(key)) {
@@ -169,10 +175,9 @@ export default function PatientDashboard() {
 
         const biomarkerData = biomarkerMap.get(key)!;
         
-        // Cada exam_id gera um valor único (mesmo que a data seja igual)
         if (!biomarkerData.values.has(examId)) {
           biomarkerData.values.set(examId, {
-            result_id: result.id, // ✅ ID único do exam_result
+            result_id: result.id,
             exam_id: examId,
             exam_date: examDate,
             value: result.value,
@@ -215,11 +220,40 @@ export default function PatientDashboard() {
     return {
       key: key as CategoryKey,
       name: category.name,
+      icon: getCategoryIcon(key as CategoryKey),
       total: biomarkers.length,
       normal: normalCount,
       altered: alteredCount
     };
   }).filter(stat => stat.total > 0);
+
+  // Calcular estatísticas para Hero
+  const totalBiomarkers = biomarkersData?.length || 0;
+  const totalNormal = biomarkersData?.filter(b => {
+    const lastResult = b.history[b.history.length - 1];
+    return lastResult?.status === 'normal';
+  }).length || 0;
+  const totalAltered = totalBiomarkers - totalNormal;
+  const healthScore = totalBiomarkers > 0 ? Math.round((totalNormal / totalBiomarkers) * 100) : 100;
+
+  // Identificar alertas críticos
+  const criticalAlerts = useMemo(() => {
+    if (!biomarkersData) return [];
+    return biomarkersData
+      .filter(b => {
+        const lastResult = b.history[b.history.length - 1];
+        return lastResult && (lastResult.status === 'alto' || lastResult.status === 'baixo');
+      })
+      .slice(0, 5)
+      .map(b => ({
+        biomarkerName: b.biomarker_name,
+        value: `${b.history[b.history.length - 1].value_numeric} ${b.unit || ''}`,
+        status: b.history[b.history.length - 1].status as 'alto' | 'baixo' | 'crítico',
+        reference: b.reference_min && b.reference_max 
+          ? `${b.reference_min} - ${b.reference_max} ${b.unit || ''}`
+          : 'N/A'
+      }));
+  }, [biomarkersData]);
 
   const filteredBiomarkers = selectedCategory 
     ? categorizedBiomarkers?.[selectedCategory] || []
@@ -231,14 +265,15 @@ export default function PatientDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50">
-        <Navbar showBackButton={true} backButtonPath={`/patients/${id}`} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto space-y-6">
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50">
+        <Navbar />
+        <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="space-y-6">
             <Skeleton className="h-12 w-64" />
+            <Skeleton className="h-48 w-full rounded-3xl" />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3, 4, 5, 6].map(i => (
-                <Skeleton key={i} className="h-40 rounded-2xl" />
+                <Skeleton key={i} className="h-80 rounded-3xl" />
               ))}
             </div>
           </div>
@@ -249,111 +284,101 @@ export default function PatientDashboard() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <Navbar showBackButton={true} backButtonPath={`/patients/${id}`} />
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-gray-50 via-white to-gray-100">
-        <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="bg-white border-b border-gray-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-8 mb-8 shadow-sm">
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-medical-purple/10">
-                <Activity className="w-8 h-8 text-medical-purple" />
-              </div>
-              Dashboard de Acompanhamento
-            </h1>
-            <p className="text-gray-600 mt-2 text-lg font-medium">
-              {patient?.full_name}
-            </p>
-          </div>
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50">
+      <Navbar />
+      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Botão de voltar */}
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/patients')}
+            className="hover:bg-gray-100 text-gray-700"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar para Pacientes
+          </Button>
+        </div>
 
-        {/* View: Categorias */}
-        {viewMode === 'categories' && categoryStats.length > 0 && (
-          <div>
+        {/* Hero Stats */}
+        {patient && (
+          <HeroStats
+            patientName={patient.full_name}
+            totalExams={totalBiomarkers}
+            normalCount={totalNormal}
+            attentionCount={totalAltered}
+            healthScore={healthScore}
+            lastUpdate={new Date()}
+          />
+        )}
+
+        {/* Critical Alerts */}
+        <CriticalAlertsCard alerts={criticalAlerts} />
+
+        {/* Categorias */}
+        {biomarkersData && biomarkersData.length > 0 && (
+          <div className="mb-8">
             <div className="flex items-center gap-3 mb-6">
-              <div className="h-1 w-12 bg-gradient-to-r from-medical-purple to-medical-purple/50 rounded-full" />
-              <h2 className="text-2xl font-bold text-gray-900">
-                Categorias de Biomarcadores
+              <div className="h-1 w-12 bg-gradient-to-r from-medical-purple-600 to-purple-600 rounded-full" />
+              <h2 className="text-3xl font-bold text-gray-900">
+                Visão por Categorias
               </h2>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Card "Todos os Exames" */}
-              <BiomarkerCategoryCard
-                category={'cardiovascular' as CategoryKey}
-                categoryName="Todos os Exames"
-                totalBiomarkers={biomarkersData?.length || 0}
-                normalCount={biomarkersData?.filter(b => b.history[b.history.length - 1]?.status === 'normal').length || 0}
-                alteredCount={biomarkersData?.filter(b => b.history[b.history.length - 1]?.status !== 'normal').length || 0}
-                onClick={() => {
-                  setSelectedCategory(null);
-                  setViewMode('table');
-                }}
-              />
-              
-              {/* Cards de Categorias */}
-              {categoryStats.map(stat => (
+              {categoryStats.map((stat) => (
                 <BiomarkerCategoryCard
                   key={stat.key}
                   category={stat.key}
                   categoryName={stat.name}
-                  totalBiomarkers={stat.total}
+                  icon={stat.icon}
+                  totalCount={stat.total}
                   normalCount={stat.normal}
                   alteredCount={stat.altered}
-                  onClick={() => {
-                    setSelectedCategory(stat.key);
-                    setViewMode('table');
-                  }}
+                  patientId={id!}
                 />
               ))}
             </div>
           </div>
         )}
 
-        {/* View: Tabela Filtrada */}
-        {viewMode === 'table' && trackingTableData && trackingTableData.biomarkers.length > 0 && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={() => {
-                  setSelectedCategory(null);
-                  setViewMode('categories');
-                }}
-                className="bg-white border-2 border-medical-purple text-medical-purple hover:bg-medical-purple/5 font-semibold rounded-full"
-              >
-                ← Voltar às categorias
-              </Button>
-              {selectedCategory && (
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {BIOMARKER_CATEGORIES[selectedCategory].name}
-                </h2>
-              )}
+        {/* Tabela Completa */}
+        {trackingTableData && trackingTableData.biomarkers.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-1 w-12 bg-gradient-to-r from-medical-purple-600 to-purple-600 rounded-full" />
+              <h2 className="text-3xl font-bold text-gray-900">
+                Acompanhamento Longitudinal
+              </h2>
             </div>
-            
-            <BiomarkerTrackingTable 
+            <BiomarkerTrackingTable
               patientId={id!}
-              data={selectedCategory ? filteredData : trackingTableData.biomarkers}
+              data={filteredData.length > 0 ? filteredData : trackingTableData.biomarkers}
               examDates={trackingTableData.examDates}
-              patientName={patient?.full_name}
-              initialCategory={selectedCategory || undefined}
+              patientName={patient?.full_name || ''}
             />
           </div>
         )}
 
-
-        {/* Empty State */}
-        {biomarkersData?.length === 0 && (
-          <div className="text-center py-16 bg-white rounded-2xl shadow-sm border border-gray-200">
-            <div className="p-4 rounded-full bg-gray-100 w-20 h-20 mx-auto mb-6 flex items-center justify-center">
-              <Activity className="w-10 h-10 text-gray-400" />
+        {/* Estado vazio */}
+        {(!biomarkersData || biomarkersData.length === 0) && !isLoading && (
+          <div className="text-center py-20 bg-gradient-to-br from-white via-gray-50 to-white rounded-3xl shadow-xl border-2 border-dashed border-gray-300">
+            <div className="p-6 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-50 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+              <Activity className="w-12 h-12 text-gray-400" />
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-3">
               Nenhum biomarcador encontrado
             </h3>
-            <p className="text-gray-600 text-lg">
+            <p className="text-gray-600 text-lg mb-6 max-w-md mx-auto">
               Adicione exames ao paciente para visualizar o dashboard de evolução
             </p>
+            <Button
+              onClick={() => navigate(`/patients/${id}`)}
+              className="bg-gradient-to-r from-medical-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-full"
+            >
+              Adicionar Primeiro Exame
+            </Button>
           </div>
         )}
-        </div>
       </main>
       <Footer />
     </div>
