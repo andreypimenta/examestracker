@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.aws-webhook]
 verify_jwt = false
+
+[functions.analyze-exam]
+verify_jwt = false

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -27,9 +27,12 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, TrendingUp, TrendingDown, CheckCircle } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, CheckCircle, Brain, Loader2 } from "lucide-react";
 import { categorizeBiomarker, getCategoryColor } from "@/utils/biomarkerCategories";
+import { useExamAnalysis } from "@/hooks/useExamAnalysis";
 
 interface ExamResultsDialogProps {
   open: boolean;
@@ -41,6 +44,8 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const queryClient = useQueryClient();
+  const { analyzeExam, analyzing } = useExamAnalysis();
 
   const { data: examData, isLoading } = useQuery({
     queryKey: ["exam-results", examId],
@@ -269,7 +274,47 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
           </TabsContent>
 
           <TabsContent value="insights" className="flex-1 overflow-auto mt-4">
-            {examData?.exam && <ExamInsightsPanel exam={examData.exam as unknown as ExamWithInsights} />}
+            {examData?.exam && !examData.exam.health_score && (
+              <Card className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/20">
+                <CardContent className="py-8 text-center">
+                  <Brain className="w-16 h-16 mx-auto mb-4 text-purple-400" />
+                  <h3 className="text-xl font-semibold mb-2 text-white">
+                    Insights Clínicos Não Gerados
+                  </h3>
+                  <p className="text-sm text-white/70 mb-6 max-w-md mx-auto">
+                    Os biomarcadores foram extraídos com sucesso. Clique abaixo para gerar uma análise clínica detalhada com IA.
+                  </p>
+                  <Button 
+                    onClick={async () => {
+                      if (examId) {
+                        const result = await analyzeExam(examId);
+                        if (result) {
+                          queryClient.invalidateQueries({ queryKey: ["exam-results", examId] });
+                        }
+                      }
+                    }} 
+                    disabled={analyzing}
+                    className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold"
+                  >
+                    {analyzing ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Analisando...
+                      </>
+                    ) : (
+                      <>
+                        <Brain className="mr-2 h-5 w-5" />
+                        Gerar Análise Clínica
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+            
+            {examData?.exam && examData.exam.health_score && (
+              <ExamInsightsPanel exam={examData.exam as unknown as ExamWithInsights} />
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>

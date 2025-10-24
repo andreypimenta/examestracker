@@ -53,28 +53,7 @@ interface AWSExamData {
       explicacao_leiga: string;
       possiveis_causas_alteracao: string[] | null;
     }>;
-    analise_clinica?: {
-      resumo_executivo: string;
-      areas_atencao: string[];
-      score_saude_geral: number;
-      categoria_risco: string;
-    };
-    alertas?: Array<{
-      tipo: string;
-      exame: string;
-      mensagem: string;
-      acao_sugerida: string;
-    }>;
-    tendencias?: {
-      melhorias: string[];
-      pioras: string[];
-      estavel: string[];
-    };
-    recomendacoes?: Array<{
-      categoria: string;
-      prioridade: string;
-      descricao: string;
-    }>;
+    
     metadata?: {
       total_exames: number;
       exames_normais: number;
@@ -475,7 +454,7 @@ export function useExamUpload() {
         console.error('[syncExamToSupabase] ❌ Erro ao deletar resultados antigos:', deleteError);
       }
       
-      // Update exam with AWS data
+      // Update exam with AWS data (only basic extraction data, no insights)
       const { error: updateError } = await supabase
         .from("exams")
         .update({
@@ -485,12 +464,6 @@ export function useExamUpload() {
           patient_name_extracted: dadosBasicos.paciente,
           total_biomarkers: awsData.metadata?.total_exames || awsData.total_exames || 0,
           raw_aws_response: awsData as any,
-          clinical_analysis: awsData.analise_clinica || null,
-          alerts: awsData.alertas || [],
-          trends: awsData.tendencias || {},
-          recommendations: awsData.recomendacoes || [],
-          health_score: awsData.analise_clinica?.score_saude_geral || null,
-          risk_category: awsData.analise_clinica?.categoria_risco || null,
         })
         .eq("id", examId);
 
