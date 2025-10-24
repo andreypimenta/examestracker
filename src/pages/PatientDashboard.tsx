@@ -112,7 +112,6 @@ export default function PatientDashboard() {
         <Navbar />
         <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Skeleton className="h-10 w-48 mb-6" />
-          <Skeleton className="h-16 w-96 mb-8" />
           <Skeleton className="h-[600px] w-full rounded-2xl" />
         </main>
         <Footer />
@@ -136,18 +135,6 @@ export default function PatientDashboard() {
             Voltar para Pacientes
           </Button>
         </div>
-
-        {/* Header Simples */}
-        {patient && (
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">
-              {patient.full_name}
-            </h1>
-            <p className="text-lg text-gray-600">
-              Acompanhamento de Biomarcadores
-            </p>
-          </div>
-        )}
 
         {/* Tabela de Acompanhamento */}
         {trackingTableData && trackingTableData.biomarkers.length > 0 && (
