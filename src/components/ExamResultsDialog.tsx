@@ -250,8 +250,12 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
                               )}
                             </TableCell>
                             <TableCell className="text-right">
-                              <span className="text-white/70 font-mono text-sm">
-                                {result.reference_min && result.reference_max
+                              <span className={`font-mono text-sm ${
+                                result.reference_min !== null && result.reference_max !== null
+                                  ? 'text-white/70'
+                                  : 'text-white/40 italic'
+                              }`}>
+                                {result.reference_min !== null && result.reference_max !== null
                                   ? `${result.reference_min} - ${result.reference_max}`
                                   : "N/A"}
                               </span>

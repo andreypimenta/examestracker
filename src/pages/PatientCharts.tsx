@@ -274,9 +274,15 @@ const PatientCharts = () => {
                       
                       <div className="text-center">
                         <p className="text-sm text-white/70 mb-2">Faixa de Referência</p>
-                        <p className="text-xl font-semibold text-white">
-                          {selectedBiomarkerData.reference_min ?? '-'} - {selectedBiomarkerData.reference_max ?? '-'} {selectedBiomarkerData.unit}
-                        </p>
+                        {selectedBiomarkerData.reference_min !== null && selectedBiomarkerData.reference_max !== null ? (
+                          <p className="text-xl font-semibold text-white">
+                            {selectedBiomarkerData.reference_min} - {selectedBiomarkerData.reference_max} {selectedBiomarkerData.unit}
+                          </p>
+                        ) : (
+                          <p className="text-lg font-medium text-white/40 italic">
+                            Ref. não disponível
+                          </p>
+                        )}
                       </div>
                       
                       <div className="text-center">

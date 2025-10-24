@@ -370,7 +370,7 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
                     <TableCell className="text-white/70 text-sm font-medium">
                       {row.reference_min !== null && row.reference_max !== null
                         ? `${row.reference_min}-${row.reference_max}`
-                        : '-'}
+                        : <span className="text-white/40 italic">N/A</span>}
                     </TableCell>
                     
                     <TableCell className="text-center">

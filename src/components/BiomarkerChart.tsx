@@ -121,32 +121,28 @@ export function BiomarkerChart({
                 }}
               />
               
-              {/* Área sombreada da faixa de referência */}
+              {/* Área sombreada da faixa de referência - apenas se houver valores */}
               {referenceMin !== null && referenceMax !== null && (
-                <ReferenceArea
-                  y1={referenceMin}
-                  y2={referenceMax}
-                  fill="hsl(var(--primary))"
-                  fillOpacity={0.1}
-                />
-              )}
-              
-              {referenceMax && (
-                <ReferenceLine 
-                  y={referenceMax} 
-                  stroke="hsl(var(--destructive))" 
-                  strokeDasharray="5 5"
-                  strokeWidth={2}
-                />
-              )}
-              
-              {referenceMin && (
-                <ReferenceLine 
-                  y={referenceMin} 
-                  stroke="hsl(var(--destructive))" 
-                  strokeDasharray="5 5"
-                  strokeWidth={2}
-                />
+                <>
+                  <ReferenceArea
+                    y1={referenceMin}
+                    y2={referenceMax}
+                    fill="hsl(var(--primary))"
+                    fillOpacity={0.1}
+                  />
+                  <ReferenceLine 
+                    y={referenceMax} 
+                    stroke="hsl(var(--destructive))" 
+                    strokeDasharray="5 5"
+                    strokeWidth={2}
+                  />
+                  <ReferenceLine 
+                    y={referenceMin} 
+                    stroke="hsl(var(--destructive))" 
+                    strokeDasharray="5 5"
+                    strokeWidth={2}
+                  />
+                </>
               )}
               
               <Line 
