@@ -208,7 +208,7 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <CardTitle className="text-3xl font-bold text-gray-900 mb-2">
-              Histórico Completo
+              {patientName || 'Histórico Completo'}
             </CardTitle>
             <CardDescription className="text-gray-600 text-base">
               Acompanhamento longitudinal de todos os biomarcadores
