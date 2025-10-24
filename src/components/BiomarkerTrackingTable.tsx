@@ -203,7 +203,7 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
   }
 
   return (
-    <Card className="bg-white border-0 shadow-2xl rounded-3xl overflow-hidden">
+    <Card className="bg-white border border-gray-200 shadow-lg rounded-2xl overflow-hidden">
       <CardHeader className="bg-gradient-to-br from-gray-50 via-white to-gray-50 border-b-2 border-gray-100 px-8 py-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
