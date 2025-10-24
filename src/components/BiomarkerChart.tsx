@@ -60,16 +60,18 @@ export function BiomarkerChart({
   // Renderizar mensagem se não houver dados numéricos
   if (validData.length === 0) {
     return (
-      <Card className="bg-white/10 backdrop-blur-md border-white/20">
-        <CardHeader>
-          <CardTitle className="text-xl text-white">{biomarkerName}</CardTitle>
-          <CardDescription className="text-base text-white/70">
+      <Card className="bg-white border border-gray-200 shadow-lg rounded-2xl overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-medical-purple to-medical-purple/90 text-white">
+          <CardTitle className="text-2xl font-bold text-white">{biomarkerName}</CardTitle>
+          <CardDescription className="text-purple-100 text-base">
             Evolução ao longo do tempo {unit && `(${unit})`}
           </CardDescription>
         </CardHeader>
         <CardContent className="text-center py-12">
-          <Activity className="w-12 h-12 text-white/40 mx-auto mb-4" />
-          <p className="text-white/60">
+          <div className="p-4 rounded-full bg-gray-100 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+            <Activity className="w-10 h-10 text-gray-400" />
+          </div>
+          <p className="text-gray-600 text-lg">
             Este biomarcador não possui valores numéricos para gráfico
           </p>
         </CardContent>
@@ -78,10 +80,10 @@ export function BiomarkerChart({
   }
 
   return (
-    <Card className="bg-white/10 backdrop-blur-md border-white/20">
-      <CardHeader>
-        <CardTitle className="text-xl text-white">{biomarkerName}</CardTitle>
-        <CardDescription className="text-base text-white/70">
+    <Card className="bg-white border border-gray-200 shadow-lg rounded-2xl overflow-hidden">
+      <CardHeader className="bg-gradient-to-r from-medical-purple to-medical-purple/90 text-white">
+        <CardTitle className="text-2xl font-bold text-white">{biomarkerName}</CardTitle>
+        <CardDescription className="text-purple-100 text-base">
           Evolução ao longo do tempo {unit && `(${unit})`}
         </CardDescription>
       </CardHeader>
@@ -94,13 +96,13 @@ export function BiomarkerChart({
               <XAxis 
                 dataKey="date" 
                 className="text-sm"
-                tick={{ fill: 'rgba(255, 255, 255, 0.7)' }}
+                tick={{ fill: '#4B5563' }}
                 height={50}
               />
               
               <YAxis 
                 className="text-sm"
-                tick={{ fill: 'rgba(255, 255, 255, 0.7)' }}
+                tick={{ fill: '#4B5563' }}
                 width={50}
               />
               
@@ -109,30 +111,30 @@ export function BiomarkerChart({
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
-                      <div className="rounded-lg border border-white/20 bg-white/10 backdrop-blur-md p-3 shadow-xl">
+                      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
                         <div className="grid gap-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-sm text-white/70">Data:</span>
-                            <span className="text-sm font-medium text-white">{data.fullDate}</span>
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm text-gray-600 font-medium">Data:</span>
+                            <span className="text-sm font-semibold text-gray-900">{data.fullDate}</span>
                           </div>
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-sm text-white/70">Valor:</span>
-                            <span className="text-sm font-bold text-white">{data.value} {unit}</span>
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm text-gray-600 font-medium">Valor:</span>
+                            <span className="text-base font-bold text-medical-purple">{data.value} {unit}</span>
                           </div>
                           {data.laboratory && (
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-sm text-white/70">Lab:</span>
-                              <span className="text-sm text-white">{data.laboratory}</span>
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="text-sm text-gray-600 font-medium">Lab:</span>
+                              <span className="text-sm text-gray-900">{data.laboratory}</span>
                             </div>
                           )}
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-sm text-white/70">Status:</span>
-                            <span className={`text-sm font-medium ${
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm text-gray-600 font-medium">Status:</span>
+                            <span className={`text-sm font-bold ${
                               data.status === 'alto' || data.status === 'crítico' 
-                                ? 'text-yellow-400' 
+                                ? 'text-amber-600' 
                                 : data.status === 'baixo'
-                                ? 'text-yellow-400'
-                                : 'text-green-400'
+                                ? 'text-amber-600'
+                                : 'text-green-600'
                             }`}>
                               {data.status.toUpperCase()}
                             </span>
@@ -172,26 +174,29 @@ export function BiomarkerChart({
               <Line 
                 type="monotone" 
                 dataKey="value" 
-                stroke="hsl(var(--primary))" 
+                stroke="hsl(271, 81%, 56%)" 
                 strokeWidth={3}
                 dot={(props) => {
                   const { cx, cy, payload } = props;
-                  const color = getStatusColor(payload.status);
+                  const color = payload.status === 'normal' 
+                    ? 'hsl(142, 71%, 45%)' 
+                    : 'hsl(38, 92%, 50%)';
                   return (
                     <circle
                       cx={cx}
                       cy={cy}
                       r={6}
                       fill={color}
-                      stroke="hsl(var(--background))"
+                      stroke="white"
                       strokeWidth={2}
                     />
                   );
                 }}
                 activeDot={{ 
                   r: 8,
-                  stroke: 'hsl(var(--background))',
-                  strokeWidth: 3
+                  stroke: 'white',
+                  strokeWidth: 3,
+                  fill: 'hsl(271, 81%, 56%)'
                 }}
               />
             </LineChart>

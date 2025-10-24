@@ -203,14 +203,15 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
   }
 
   return (
-    <Card className="bg-white/5 backdrop-blur-sm border-white/10 shadow-xl">
-      <CardHeader className="border-b border-white/10">
+    <Card className="bg-white border border-gray-200 shadow-lg rounded-2xl overflow-hidden">
+      {/* Header roxo */}
+      <CardHeader className="bg-gradient-to-r from-medical-purple to-medical-purple/90 text-white border-none">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <CardTitle className="text-white text-xl">
+            <CardTitle className="text-white text-2xl font-bold">
               Tabela de Acompanhamento Longitudinal
             </CardTitle>
-            <CardDescription className="text-white/70">
+            <CardDescription className="text-purple-100 text-base mt-1">
               Evolução completa de todos os biomarcadores ao longo do tempo
             </CardDescription>
           </div>
@@ -218,7 +219,7 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
           <div className="flex items-center gap-2">
             {categories.length > 0 && (
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-[200px] bg-white/5 border-white/20 text-white">
+                <SelectTrigger className="w-[200px] bg-white/20 border-white/30 text-white hover:bg-white/30">
                   <SelectValue placeholder="Todas as Categorias" />
                 </SelectTrigger>
                 <SelectContent>
@@ -234,7 +235,7 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
             
             <Button 
               onClick={exportToPDF}
-              className="bg-gradient-to-r from-rest-blue to-rest-cyan text-white hover:opacity-90"
+              className="bg-white text-medical-purple hover:bg-gray-100 font-semibold rounded-full"
             >
               <Download className="w-4 h-4 mr-2" />
               Exportar PDF
@@ -247,8 +248,8 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-white/10 backdrop-blur-sm">
-                <TableHead className="sticky left-0 z-20 bg-white/10 backdrop-blur-sm text-white font-bold min-w-[180px] border-r border-white/10">
+              <TableRow className="bg-gray-50 border-b border-gray-200">
+                <TableHead className="sticky left-0 z-20 bg-gray-50 text-gray-900 font-bold min-w-[180px] border-r border-gray-200">
                   Biomarcador
                 </TableHead>
                 {examDates.map((dateKey, index) => {
@@ -262,7 +263,7 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
                   return (
                     <TableHead 
                       key={examId} 
-                      className="text-center text-white font-bold min-w-[100px]"
+                      className="text-center text-gray-900 font-bold min-w-[100px]"
                     >
                       <TooltipProvider>
                         <div className="flex items-center justify-center gap-1">
@@ -300,13 +301,13 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
                     </TableHead>
                   );
                 })}
-                <TableHead className="text-white font-bold min-w-[80px]">
+                <TableHead className="text-gray-900 font-bold min-w-[80px]">
                   Unidade
                 </TableHead>
-                <TableHead className="text-white font-bold min-w-[120px]">
+                <TableHead className="text-gray-900 font-bold min-w-[120px]">
                   Referência
                 </TableHead>
-                <TableHead className="text-center text-white font-bold min-w-[100px]">
+                <TableHead className="text-center text-gray-900 font-bold min-w-[100px]">
                   Tendência
                 </TableHead>
               </TableRow>
@@ -319,9 +320,9 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
                 return (
                   <TableRow 
                     key={row.biomarker_name}
-                    className="bg-transparent border-b border-white/5 hover:bg-white/5 transition-colors"
+                    className="border-b border-gray-100 hover:bg-purple-50 transition-colors"
                   >
-                    <TableCell className="sticky left-0 z-10 bg-white/5 backdrop-blur-sm font-semibold text-white border-r border-white/10">
+                    <TableCell className="sticky left-0 z-10 bg-white hover:bg-purple-50 font-semibold text-gray-900 border-r border-gray-200">
                       {row.biomarker_name}
                     </TableCell>
                     
@@ -334,8 +335,10 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
                         <TableCell 
                           key={examId}
                           className={cn(
-                            "text-center font-semibold cursor-pointer hover:bg-white/10 transition-colors group relative",
-                            value && getStatusColor(value.status)
+                            "text-center font-semibold cursor-pointer hover:bg-purple-100 transition-colors group relative",
+                            value && value.status === 'normal' && "text-green-600",
+                            value && (value.status === 'alto' || value.status === 'baixo') && "text-amber-600",
+                            !value && "text-gray-400"
                           )}
                           onClick={() => value && handleEditBiomarker(row, value)}
                         >
@@ -363,14 +366,14 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
                       );
                     })}
                     
-                    <TableCell className="text-white/70 font-medium">
+                    <TableCell className="text-gray-600 font-medium">
                       {row.unit || '-'}
                     </TableCell>
                     
-                    <TableCell className="text-white/70 text-sm font-medium">
+                    <TableCell className="text-gray-600 text-sm font-medium">
                       {row.reference_min !== null && row.reference_max !== null
                         ? `${row.reference_min}-${row.reference_max}`
-                        : <span className="text-white/40 italic">N/A</span>}
+                        : <span className="text-gray-400 italic">N/A</span>}
                     </TableCell>
                     
                     <TableCell className="text-center">

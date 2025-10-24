@@ -78,7 +78,10 @@ export default {
 					success: 'hsl(142, 60%, 38%)',
 					warning: 'hsl(38, 85%, 52%)',
 					critical: 'hsl(0, 65%, 52%)',
-					info: 'hsl(199, 85%, 38%)'
+					info: 'hsl(199, 85%, 38%)',
+					purple: 'hsl(271, 81%, 56%)',
+					'purple-dark': 'hsl(271, 91%, 25%)',
+					'purple-light': 'hsl(271, 100%, 95%)'
 				}
 			},
 			borderRadius: {

@@ -231,14 +231,14 @@ export default function PatientDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-rest-black via-rest-charcoal to-rest-black">
+      <div className="min-h-screen flex flex-col bg-gray-50">
         <Navbar showBackButton={true} backButtonPath={`/patients/${id}`} />
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto space-y-6">
             <Skeleton className="h-12 w-64" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3, 4, 5, 6].map(i => (
-                <Skeleton key={i} className="h-32" />
+                <Skeleton key={i} className="h-40 rounded-2xl" />
               ))}
             </div>
           </div>
@@ -249,17 +249,19 @@ export default function PatientDashboard() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-rest-black via-rest-charcoal to-rest-black">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar showBackButton={true} backButtonPath={`/patients/${id}`} />
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-gray-50 via-white to-gray-100">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
-          <div>
-            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-              <Activity className="w-8 h-8 text-rest-blue" />
+          <div className="bg-white border-b border-gray-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-6 mb-6">
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-medical-purple/10">
+                <Activity className="w-8 h-8 text-medical-purple" />
+              </div>
               Dashboard de Acompanhamento
             </h1>
-            <p className="text-rest-gray mt-1">
+            <p className="text-gray-600 mt-2 text-lg font-medium">
               {patient?.full_name}
             </p>
           </div>
@@ -267,8 +269,8 @@ export default function PatientDashboard() {
         {/* View: Categorias */}
         {viewMode === 'categories' && categoryStats.length > 0 && (
           <div>
-            <h2 className="text-xl font-semibold text-white mb-4">Categorias de Biomarcadores</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Categorias de Biomarcadores</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Card "Todos os Exames" */}
               <BiomarkerCategoryCard
                 category={'cardiovascular' as CategoryKey}
@@ -303,19 +305,19 @@ export default function PatientDashboard() {
 
         {/* View: Tabela Filtrada */}
         {viewMode === 'table' && trackingTableData && trackingTableData.biomarkers.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
               <Button
                 onClick={() => {
                   setSelectedCategory(null);
                   setViewMode('categories');
                 }}
-                className="bg-gradient-to-r from-rest-blue to-rest-cyan text-white hover:opacity-90"
+                className="bg-white border-2 border-medical-purple text-medical-purple hover:bg-medical-purple/5 font-semibold rounded-full"
               >
                 ← Voltar às categorias
               </Button>
               {selectedCategory && (
-                <h2 className="text-xl font-semibold text-white">
+                <h2 className="text-2xl font-bold text-gray-900">
                   {BIOMARKER_CATEGORIES[selectedCategory].name}
                 </h2>
               )}
@@ -334,12 +336,14 @@ export default function PatientDashboard() {
 
         {/* Empty State */}
         {biomarkersData?.length === 0 && (
-          <div className="text-center py-12">
-            <Activity className="w-16 h-16 text-rest-gray mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">
+          <div className="text-center py-16 bg-white rounded-2xl shadow-sm border border-gray-200">
+            <div className="p-4 rounded-full bg-gray-100 w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+              <Activity className="w-10 h-10 text-gray-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">
               Nenhum biomarcador encontrado
             </h3>
-            <p className="text-rest-gray">
+            <p className="text-gray-600 text-lg">
               Adicione exames ao paciente para visualizar o dashboard de evolução
             </p>
           </div>

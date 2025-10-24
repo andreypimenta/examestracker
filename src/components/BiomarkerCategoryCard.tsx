@@ -24,47 +24,49 @@ export function BiomarkerCategoryCard({
 
   return (
     <Card 
-      className="bg-white/5 backdrop-blur-lg border-white/10 cursor-pointer transition-all hover:scale-105 hover:shadow-[0_10px_30px_rgba(0,173,238,0.3)] group"
+      className="bg-white border border-gray-200 shadow-lg hover:shadow-2xl hover:-translate-y-1 cursor-pointer transition-all duration-300 rounded-2xl overflow-hidden group"
       onClick={onClick}
     >
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <div 
-              className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform"
-              style={{ background: `linear-gradient(135deg, ${categoryColor}, ${categoryColor}dd)` }}
-            />
-
-            <span className="bg-rest-blue/80 backdrop-blur-sm px-4 py-1.5 rounded-lg font-semibold text-white border border-rest-blue/40 shadow-md">
-              {categoryName}
-            </span>
-          </CardTitle>
-          <TrendingUp className="w-5 h-5 text-white/60" />
+      {/* Header colorido */}
+      <div 
+        className="h-2 bg-gradient-to-r from-medical-purple to-medical-purple/70"
+      />
+      
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between mb-4">
+          <div className="p-3 rounded-xl bg-medical-purple/10 group-hover:bg-medical-purple/20 transition-colors">
+            <TrendingUp className="w-6 h-6 text-medical-purple" />
+          </div>
+          <Badge className="bg-medical-purple/10 text-medical-purple border-medical-purple/20 font-bold text-sm px-3 py-1">
+            {totalBiomarkers} {totalBiomarkers !== 1 ? 'exames' : 'exame'}
+          </Badge>
         </div>
+        <CardTitle className="text-xl font-bold text-gray-900">
+          {categoryName}
+        </CardTitle>
       </CardHeader>
+      
       <CardContent>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-medical-success/10 px-3 py-1.5 rounded-md border border-medical-success/20">
-            <CheckCircle className="w-4 h-4 text-medical-success" />
-            <span className="text-xs font-semibold text-white whitespace-nowrap">
-              {normalCount} norma{normalCount !== 1 ? 'is' : 'l'}
-            </span>
+        <div className="space-y-3">
+          {/* Status Normal */}
+          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <span className="text-sm font-medium text-gray-700">Normais</span>
+            </div>
+            <span className="text-lg font-bold text-green-700">{normalCount}</span>
           </div>
           
+          {/* Status Alterado */}
           {alteredCount > 0 && (
-            <div className="flex items-center gap-2 bg-destructive/10 px-3 py-1.5 rounded-md border border-destructive/20">
-              <AlertCircle className="w-4 h-4 text-destructive" />
-              <span className="text-xs font-semibold text-white whitespace-nowrap">
-                {alteredCount} alterado{alteredCount !== 1 ? 's' : ''}
-              </span>
+            <div className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-amber-600" />
+                <span className="text-sm font-medium text-gray-700">Alterados</span>
+              </div>
+              <span className="text-lg font-bold text-amber-700">{alteredCount}</span>
             </div>
           )}
-        </div>
-        
-        <div className="mt-3">
-          <Badge variant="secondary" className="text-xs bg-white/10 border border-white/20 text-white font-semibold px-3 py-1">
-            {totalBiomarkers} biomarcador{totalBiomarkers !== 1 ? 'es' : ''}
-          </Badge>
         </div>
       </CardContent>
     </Card>
