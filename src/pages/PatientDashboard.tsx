@@ -108,7 +108,7 @@ export default function PatientDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50">
+      <div className="min-h-screen flex flex-col bg-white">
         <Navbar />
         <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Skeleton className="h-10 w-48 mb-6" />
@@ -120,7 +120,7 @@ export default function PatientDashboard() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50">
+    <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
       
       <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -129,7 +129,7 @@ export default function PatientDashboard() {
           <Button
             variant="ghost"
             onClick={() => navigate('/patients')}
-            className="hover:bg-gray-100 text-gray-700"
+            className="hover:bg-gray-100 text-gray-900 font-medium"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar para Pacientes
