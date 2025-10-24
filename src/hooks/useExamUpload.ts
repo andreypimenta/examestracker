@@ -103,11 +103,20 @@ export function useExamUpload() {
   };
 
   // Método original (manual)
-  const uploadExam = async ({ patientId, file, examDate, onComplete }: UploadOptions) => {
+  const uploadExam = async ({ 
+    patientId, 
+    file, 
+    examDate, 
+    onComplete,
+    onStatusUpdate,
+  }: UploadOptions & {
+    onStatusUpdate?: (message: string, progress: number) => void;
+  }) => {
     try {
       setUploading(true);
       setProgress(10);
       setStatus("Preparando upload...");
+      onStatusUpdate?.("Preparando upload...", 10);
 
       // 1. Get user
       const { data: { user } } = await supabase.auth.getUser();
@@ -177,6 +186,7 @@ export function useExamUpload() {
 
       // 6. Upload para S3 com Content-Type retornado pela AWS
       setStatus("Enviando arquivo...");
+      onStatusUpdate?.("Enviando arquivo...", 30);
       console.log(`[Upload] Enviando ${finalFileName} com Content-Type da AWS: ${awsContentType}`);
 
       const uploadResponse = await fetch(uploadUrl, {
@@ -205,10 +215,12 @@ export function useExamUpload() {
 
       // 8. Start polling
       setStatus("Processando com IA...");
-      await pollExamStatus(patientId, s3Key, exam.id);
+      onStatusUpdate?.("Processando com IA...", 50);
+      await pollExamStatus(patientId, s3Key, exam.id, onStatusUpdate);
 
       setProgress(100);
       setStatus("Concluído!");
+      onStatusUpdate?.("Concluído!", 100);
       toast.success("Exame processado com sucesso!", {
         description: `Exame analisado com sucesso`,
       });
@@ -243,7 +255,12 @@ export function useExamUpload() {
     }
   };
 
-  const pollExamStatus = async (userId: string, s3Key: string, examId: string) => {
+  const pollExamStatus = async (
+    userId: string, 
+    s3Key: string, 
+    examId: string,
+    onStatusUpdate?: (message: string, progress: number) => void
+  ) => {
     const maxAttempts = 60; // 60 tentativas x 3 segundos = 180 segundos (3 minutos)
     let attempts = 0;
     const startTime = Date.now();
@@ -253,18 +270,23 @@ export function useExamUpload() {
       const interval = setInterval(async () => {
         attempts++;
         const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-        setProgress(50 + (attempts / maxAttempts) * 40); // 50% -> 90%
+        const currentProgress = 50 + (attempts / maxAttempts) * 40; // 50% -> 90%
+        setProgress(currentProgress);
 
         // Mensagens progressivas com tempo
+        let statusMsg = '';
         if (elapsedSeconds < 30) {
-          setStatus(`Processando com IA... (${elapsedSeconds}s)`);
+          statusMsg = `Processando com IA... (${elapsedSeconds}s)`;
         } else if (elapsedSeconds < 60) {
-          setStatus(`Processando com IA... (${Math.floor(elapsedSeconds / 60)}min ${elapsedSeconds % 60}s)`);
+          statusMsg = `Processando com IA... (${Math.floor(elapsedSeconds / 60)}min ${elapsedSeconds % 60}s)`;
         } else if (elapsedSeconds < 120) {
-          setStatus(`Processando com IA... (${Math.floor(elapsedSeconds / 60)}min - quase lá)`);
+          statusMsg = `Processando com IA... (${Math.floor(elapsedSeconds / 60)}min - quase lá)`;
         } else {
-          setStatus(`Processando com IA... (${Math.floor(elapsedSeconds / 60)}min - aguarde mais um pouco)`);
+          statusMsg = `Processando com IA... (${Math.floor(elapsedSeconds / 60)}min - aguarde mais um pouco)`;
         }
+        
+        setStatus(statusMsg);
+        onStatusUpdate?.(statusMsg, currentProgress);
 
         // 🔔 Toast de progresso a cada 30 segundos
         if (elapsedSeconds > 0 && elapsedSeconds % 30 === 0 && elapsedSeconds !== lastProgressToast) {
@@ -296,6 +318,12 @@ export function useExamUpload() {
             if (examData.processing_status === 'completed') {
               console.log(`[Polling Híbrido] ✅ Exame concluído (detectado via Supabase após ${elapsedSeconds}s)!`);
               console.log(`[Polling Híbrido] Total de biomarcadores: ${examData.total_biomarkers}`);
+              
+              const successMsg = examData.total_biomarkers 
+                ? `Processado! ${examData.total_biomarkers} biomarcadores extraídos`
+                : 'Processado com sucesso!';
+              
+              onStatusUpdate?.(successMsg, 100);
               
               // 🔔 Toast de sucesso via Supabase
               toast.success("Exame processado via Supabase!", {
@@ -344,9 +372,16 @@ export function useExamUpload() {
             if (data.status === 'completed' && data.data) {
               console.log(`[Polling Híbrido] ✅ Processamento concluído (detectado via AWS após ${elapsedSeconds}s)!`);
               
+              const totalBiomarkers = data.data.metadata?.total_exames || data.data.total_exames || 0;
+              const successMsg = totalBiomarkers 
+                ? `Processado! ${totalBiomarkers} biomarcadores extraídos`
+                : 'Processado com sucesso!';
+              
+              onStatusUpdate?.(successMsg, 100);
+              
               // 🔔 Toast de sucesso via AWS
               toast.success("Exame processado via AWS!", {
-                description: `${data.data.metadata?.total_exames || data.data.total_exames || 0} biomarcadores extraídos em ${elapsedSeconds}s`,
+                description: `${totalBiomarkers} biomarcadores extraídos em ${elapsedSeconds}s`,
                 duration: 4000,
               });
               
@@ -616,7 +651,7 @@ export function useExamUpload() {
 
       // 6. Poll AWS até ter o nome do paciente extraído
       setStatus("Processando com IA...");
-      await pollExamStatus("temp", s3Key, exam.id);
+      await pollExamStatus("temp", s3Key, exam.id, undefined);
 
       // 7. Buscar dados processados
       const { data: processedExam } = await supabase
@@ -753,10 +788,14 @@ export function useExamUpload() {
             patientId,
             file: item.file,
             examDate,
+            onStatusUpdate: (message, progress) => {
+              item.statusMessage = message;
+              item.progress = progress;
+              onProgressUpdate?.([...queue]);
+            },
             onComplete: () => {
               item.status = 'completed';
               item.progress = 100;
-              item.statusMessage = 'Processado!';
               onProgressUpdate?.([...queue]);
             },
           });
