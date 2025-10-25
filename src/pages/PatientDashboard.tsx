@@ -8,6 +8,7 @@ import Footer from '@/components/Footer';
 import { BiomarkerTrackingTable } from '@/components/BiomarkerTrackingTable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { categorizeBiomarker } from '@/utils/biomarkerCategories';
+import { normalizeBiomarkerWithTable } from '@/utils/biomarkerNormalization';
 
 /**
  * Normaliza nome do biomarcador para deduplicação
@@ -173,7 +174,12 @@ export default function PatientDashboard() {
 
         data?.forEach((result: any) => {
           const originalName = result.biomarker_name;
-          const normalizedKey = normalizeBiomarkerName(originalName);
+          
+          // Primeiro tentar normalizar usando a tabela de referência
+          const tableMatch = normalizeBiomarkerWithTable(originalName);
+          const normalizedKey = tableMatch 
+            ? normalizeBiomarkerName(tableMatch.normalizedName)
+            : normalizeBiomarkerName(originalName);
           
           // Pular biomarcadores que são apenas títulos
           if (EXCLUDED_BIOMARKERS.includes(normalizedKey)) {
@@ -186,15 +192,15 @@ export default function PatientDashboard() {
         
         examDatesSet.add(`${examId}|${examDate}|${isEstimatedDate ? 'estimated' : 'manual'}`);
 
-        // Normalizar categoria ANTES de verificar duplicação
-        const rawCategory = result.category || categorizeBiomarker(originalName);
+        // Normalizar categoria usando a tabela de referência primeiro
+        const rawCategory = tableMatch?.category || result.category || categorizeBiomarker(originalName);
         const category = normalizeCategoryName(rawCategory);
 
         // Se biomarcador não existe, criar entrada
         if (!biomarkerMap.has(normalizedKey)) {
           biomarkerMap.set(normalizedKey, {
-            biomarker_name: originalName,
-            unit: result.unit,
+            biomarker_name: tableMatch?.normalizedName || originalName,
+            unit: tableMatch?.unit || result.unit,
             reference_min: result.reference_min,
             reference_max: result.reference_max,
             category,

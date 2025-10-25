@@ -2,7 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, TrendingUp, TrendingDown, Minus, AlertCircle, Pencil } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Download, TrendingUp, TrendingDown, Minus, AlertCircle, Pencil, FileText, FileSpreadsheet } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { ExamDateEditDialog } from './ExamDateEditDialog';
@@ -13,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 interface BiomarkerValue {
   result_id: string;
@@ -143,6 +145,115 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
     doc.save(`acompanhamento-${patientName || 'paciente'}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
 
+  // Exportar para Excel
+  const exportToExcel = () => {
+    // Criar workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Agrupar dados por categoria
+    const groupedData = filteredData.reduce((acc, row) => {
+      const category = row.category || 'Outros';
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(row);
+      return acc;
+    }, {} as Record<string, BiomarkerRow[]>);
+
+    // Preparar dados principais
+    const excelData: any[] = [];
+    
+    // Cabeçalho de metadados
+    excelData.push(['HealthTrack - Relatório de Acompanhamento']);
+    excelData.push([`Paciente: ${patientName || 'N/A'}`]);
+    excelData.push([`Data de Emissão: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`]);
+    excelData.push([`Categoria: ${categoryFilter === 'all' ? 'Todas' : categoryFilter}`]);
+    excelData.push([]); // Linha vazia
+
+    // Cabeçalhos da tabela
+    const headers = [
+      'Biomarcador',
+      ...examDates.map(dateKey => {
+        const [, date] = dateKey.split('|');
+        return date ? format(new Date(date), 'dd/MM/yy', { locale: ptBR }) : '';
+      }),
+      'Unidade',
+      'Referência',
+      'Tendência'
+    ];
+    excelData.push(headers);
+
+    // Dados por categoria
+    const categories = Object.keys(groupedData).sort();
+    categories.forEach(category => {
+      // Linha de categoria
+      const categoryRow = new Array(headers.length).fill('');
+      categoryRow[0] = category.toUpperCase();
+      excelData.push(categoryRow);
+
+      // Biomarcadores da categoria
+      groupedData[category].forEach(row => {
+        const refText = row.reference_min !== null && row.reference_max !== null
+          ? `${row.reference_min}-${row.reference_max}`
+          : '-';
+        
+        const values = examDates.map(dateKey => {
+          const [examId] = dateKey.split('|');
+          const value = row.values.find(v => v.exam_id === examId);
+          return value?.value_numeric !== null ? value?.value_numeric : (value?.value || '-');
+        });
+
+        const trend = getTrend(row.values);
+        const trendText = trend 
+          ? (trend.type === 'stable' ? 'Estável' : `${trend.change > 0 ? '+' : ''}${trend.change.toFixed(1)}%`)
+          : 'N/A';
+
+        excelData.push([
+          row.biomarker_name,
+          ...values,
+          row.unit || '-',
+          refText,
+          trendText
+        ]);
+      });
+    });
+
+    // Criar worksheet
+    const ws = XLSX.utils.aoa_to_sheet(excelData);
+
+    // Aplicar larguras de coluna
+    const colWidths = [
+      { wch: 25 }, // Biomarcador
+      ...examDates.map(() => ({ wch: 12 })), // Datas
+      { wch: 10 }, // Unidade
+      { wch: 15 }, // Referência
+      { wch: 12 }  // Tendência
+    ];
+    ws['!cols'] = colWidths;
+
+    // Mesclar células do cabeçalho
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } }, // Título
+      { s: { r: 1, c: 0 }, e: { r: 1, c: headers.length - 1 } }, // Paciente
+      { s: { r: 2, c: 0 }, e: { r: 2, c: headers.length - 1 } }, // Data
+      { s: { r: 3, c: 0 }, e: { r: 3, c: headers.length - 1 } }  // Categoria
+    ];
+
+    // Adicionar linhas de mesclagem para categorias
+    let currentRow = 6; // Começa após cabeçalhos
+    categories.forEach(category => {
+      ws['!merges']?.push({ 
+        s: { r: currentRow, c: 0 }, 
+        e: { r: currentRow, c: headers.length - 1 } 
+      });
+      currentRow += groupedData[category].length + 1;
+    });
+
+    // Adicionar worksheet ao workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Biomarcadores');
+
+    // Salvar arquivo
+    XLSX.writeFile(wb, `acompanhamento-${patientName || 'paciente'}-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+  };
+
   // Calcular tendência
   const getTrend = (values: BiomarkerValue[]) => {
     if (values.length < 2) return null;
@@ -236,13 +347,24 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
               </SelectContent>
             </Select>
 
-            <Button
-              onClick={exportToPDF}
-              className="h-12 bg-rest-blue hover:bg-rest-cyan text-white font-semibold px-6 rounded-xl shadow-lg"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="h-12 bg-rest-blue hover:bg-rest-cyan text-white font-semibold px-6 rounded-xl shadow-lg">
+                  <Download className="w-4 h-4 mr-2" />
+                  Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 rounded-xl">
+                <DropdownMenuItem onClick={exportToPDF} className="cursor-pointer rounded-lg py-3">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Exportar PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportToExcel} className="cursor-pointer rounded-lg py-3">
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Exportar Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardHeader>
