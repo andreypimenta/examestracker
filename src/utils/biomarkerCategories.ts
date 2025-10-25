@@ -1,24 +1,21 @@
 export const BIOMARKER_CATEGORIES = {
-  cardiovascular: {
-    name: 'Cardiovascular',
-    biomarkers: [
-      'Colesterol Total',
-      'Colesterol LDL',
-      'Colesterol HDL',
-      'Colesterol VLDL',
-      'Triglicérides',
-      'Proteína C Reativa',
-      'Apolipoproteína A',
-      'Apolipoproteína B'
-    ]
-  },
   metabolico: {
     name: 'Metabólico',
     biomarkers: [
       'Glicose',
       'Hemoglobina Glicada',
       'Insulina',
-      'Peptídeo C'
+      'Peptídeo C',
+      'Colesterol Total',
+      'Colesterol LDL',
+      'HDL',
+      'Colesterol VLDL',
+      'Triglicérides',
+      'Apolipoproteína A',
+      'Apolipoproteína A1',
+      'Apolipoproteína B',
+      'Lipoproteína (a)',
+      'Ácido Úrico'
     ]
   },
   hematologico: {
@@ -147,12 +144,11 @@ export function categorizeBiomarker(biomarkerName: string): CategoryKey {
       return key as CategoryKey;
     }
   }
-  return 'vitaminas_minerais'; // fallback
+  return 'outros' as CategoryKey; // fallback
 }
 
 export function getCategoryColor(category: CategoryKey): string {
   const colors: Record<CategoryKey, string> = {
-    cardiovascular: 'hsl(var(--chart-1))',
     metabolico: 'hsl(var(--chart-2))',
     hematologico: 'hsl(var(--chart-3))',
     hormonal: 'hsl(var(--chart-4))',
@@ -164,5 +160,5 @@ export function getCategoryColor(category: CategoryKey): string {
     marcadores_musculares: 'hsl(var(--chart-5))',
     marcadores_prostaticos: 'hsl(var(--chart-1))'
   };
-  return colors[category];
+  return colors[category] || 'hsl(var(--chart-1))';
 }

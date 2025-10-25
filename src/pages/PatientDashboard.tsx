@@ -50,84 +50,105 @@ function normalizeCategoryName(category: string | null): string {
   
   const categoryMap: Record<string, string> = {
     // Hematológico
+    'hemograma': 'hematologico',
+    'hematológico': 'hematologico',
     'hematologia': 'hematologico',
+    'sangue': 'hematologico',
+    'serie vermelha': 'hematologico',
+    'série vermelha': 'hematologico',
+    'serie branca': 'hematologico',
+    'série branca': 'hematologico',
     'eritrograma': 'hematologico',
     'leucograma': 'hematologico',
-    'hematológico': 'hematologico',
-    'hematologico': 'hematologico',
-    'hemograma': 'hematologico',
-    'série vermelha': 'hematologico',
-    'serie vermelha': 'hematologico',
     'série plaquetária': 'hematologico',
     'serie plaquetaria': 'hematologico',
     
     // Metabólico
+    'metabolismo': 'metabolico',
     'metabólico': 'metabolico',
-    'metabolico': 'metabolico',
-    'bioquímica': 'metabolico',
-    'bioquimica': 'metabolico',
+    'lipídico': 'metabolico',
+    'lipidico': 'metabolico',
     'perfil lipídico': 'metabolico',
     'perfil lipidico': 'metabolico',
+    'glicemia': 'metabolico',
+    'bioquímica': 'metabolico',
+    'bioquimica': 'metabolico',
     'risco cardiovascular': 'metabolico',
-    'glicemia e diabetes': 'metabolico',
-    'metabolismo da glicose': 'metabolico',
-    'metabolismo': 'metabolico',
     'fator cardiovascular': 'metabolico',
     'cardiovascular': 'metabolico',
+    'glicemia e diabetes': 'metabolico',
+    'metabolismo da glicose': 'metabolico',
     
     // Hepático
+    'fígado': 'hepatico',
+    'figado': 'hepatico',
     'hepático': 'hepatico',
     'hepatico': 'hepatico',
     'função hepática': 'hepatico',
     'funcao hepatica': 'hepatico',
     
     // Renal
-    'renal': 'renal',
+    'rim': 'renal',
+    'rins': 'renal',
     'função renal': 'renal',
     'funcao renal': 'renal',
     
-    // ÍONS
-    'íons': 'ions',
-    'ions': 'ions',
+    // Íons
     'eletrólitos': 'ions',
     'eletrolitos': 'ions',
+    'íons': 'ions',
     'ionograma': 'ions',
     
     // Hormonal
-    'hormonal': 'hormonal',
+    'hormônio': 'hormonal',
+    'hormonio': 'hormonal',
+    'hormônios': 'hormonal',
+    'hormonios': 'hormonal',
+    'tireoide': 'hormonal',
+    'tireóide': 'hormonal',
     'hormônios sexuais': 'hormonal',
     'hormonios sexuais': 'hormonal',
+    'hormônios tireoidianos': 'hormonal',
+    'hormonios tireoidianos': 'hormonal',
     'função tireoideana': 'hormonal',
     'funcao tireoideana': 'hormonal',
-    'tireóide': 'hormonal',
-    'tireoide': 'hormonal',
     
     // Vitaminas e Minerais
-    'minerais': 'vitaminas_minerais',
+    'vitamina': 'vitaminas_minerais',
     'vitaminas': 'vitaminas_minerais',
+    'mineral': 'vitaminas_minerais',
+    'minerais': 'vitaminas_minerais',
+    'ferro': 'vitaminas_minerais',
     'minerais e vitaminas': 'vitaminas_minerais',
     'vitaminas e minerais': 'vitaminas_minerais',
     'metabolismo do ferro': 'vitaminas_minerais',
     'metais': 'vitaminas_minerais',
     'metais pesados': 'vitaminas_minerais',
     
-    // MARCADORES INFLAMATÓRIOS
-    'marcadores inflamatórios': 'marcadores_inflamatorios',
-    'marcadores inflamatorios': 'marcadores_inflamatorios',
+    // Marcadores Inflamatórios
     'inflamação': 'marcadores_inflamatorios',
     'inflamacao': 'marcadores_inflamatorios',
+    'inflamatório': 'marcadores_inflamatorios',
+    'inflamatorio': 'marcadores_inflamatorios',
+    'marcadores inflamatórios': 'marcadores_inflamatorios',
+    'marcadores inflamatorios': 'marcadores_inflamatorios',
     'imunologia': 'marcadores_inflamatorios',
     
-    // MARCADORES MUSCULARES
-    'marcadores musculares': 'marcadores_musculares',
+    // Marcadores Musculares
+    'músculo': 'marcadores_musculares',
+    'musculo': 'marcadores_musculares',
     'músculos': 'marcadores_musculares',
     'musculos': 'marcadores_musculares',
+    'muscular': 'marcadores_musculares',
+    'marcadores musculares': 'marcadores_musculares',
     
-    // MARCADORES PROSTÁTICOS
-    'marcadores prostáticos': 'marcadores_prostaticos',
-    'marcadores prostaticos': 'marcadores_prostaticos',
+    // Marcadores Prostáticos
     'próstata': 'marcadores_prostaticos',
-    'prostata': 'marcadores_prostaticos'
+    'prostata': 'marcadores_prostaticos',
+    'prostático': 'marcadores_prostaticos',
+    'prostatico': 'marcadores_prostaticos',
+    'marcadores prostáticos': 'marcadores_prostaticos',
+    'marcadores prostaticos': 'marcadores_prostaticos'
   };
   
   return categoryMap[normalized] || 'outros';
