@@ -353,29 +353,41 @@ export default function PatientDashboard() {
       
       // Segunda passagem: consolidar leucócitos por data E calcular valores absolutos faltantes
       leukocytesByDate.forEach((dateMap, dateKey) => {
-        // 1️⃣ Buscar contagem de leucócitos para esta data
+        // 1️⃣ Buscar contagem de leucócitos para esta data (busca robusta)
         let totalLeukocytes: number | null = null;
         
-        const leukocytesKey = 'leucocitos';
-        const leukocytesInfo = biomarkerMap.get(leukocytesKey);
+        // Tentar múltiplas variações de "leucócitos"
+        const possibleKeys = ['leucocitos', 'leucocitos global', 'leucócitos', 'leucócitos global'];
         
-        if (leukocytesInfo) {
-          for (const [examId, valueData] of leukocytesInfo.values) {
-            const examDate = valueData.exam_date;
-            const valueExamKey = examDate || examId;
-            
-            // Buscar por dateKey E aceitar value se value_numeric for null
-            if (valueExamKey === dateKey) {
-              const rawValue = valueData.value_numeric || valueData.value;
-              if (rawValue) {
-                totalLeukocytes = Number(rawValue);
-                if (!isNaN(totalLeukocytes) && totalLeukocytes > 0) {
-                  break; // Encontrou valor válido
+        for (const key of possibleKeys) {
+          const leukocytesInfo = biomarkerMap.get(key);
+          
+          if (leukocytesInfo) {
+            for (const [examId, valueData] of leukocytesInfo.values) {
+              const examDate = valueData.exam_date;
+              const valueExamKey = examDate || examId;
+              
+              // Buscar por dateKey E aceitar value se value_numeric for null
+              if (valueExamKey === dateKey) {
+                const rawValue = valueData.value_numeric || valueData.value;
+                if (rawValue) {
+                  totalLeukocytes = Number(rawValue);
+                  if (!isNaN(totalLeukocytes) && totalLeukocytes > 0) {
+                    break; // Encontrou valor válido
+                  }
                 }
               }
             }
+            
+            if (totalLeukocytes && totalLeukocytes > 0) break; // Encontrou, sair do loop externo
           }
         }
+        
+        // Debug: Log se encontrou leucócitos
+        console.log('🔍 [DEBUG] dateKey:', dateKey, '| totalLeukocytes:', totalLeukocytes);
+        
+        // 2️⃣ Se não encontrou leucócitos, pular
+        if (!totalLeukocytes || totalLeukocytes <= 0) return;
         
         // 2️⃣ Consolidar cada tipo de leucócito
         dateMap.forEach((leukocyteData, biomarkerKey) => {
@@ -393,6 +405,8 @@ export default function PatientDashboard() {
             
             if (!isNaN(percentValue) && percentValue >= 0) {
               const absoluteValue = Math.round((percentValue / 100) * totalLeukocytes);
+              
+              console.log('✅ [CALC]', biomarkerKey, ':', percentValue, '% ×', totalLeukocytes, '=', absoluteValue);
               
               // Criar objeto "result" sintético com valor calculado
               calculatedAbsolute = {

@@ -8,7 +8,9 @@ const LEUKOCYTE_TYPES = [
   'linfócitos', 'linfocitos', 
   'monócitos', 'monocitos',
   'eosinófilos', 'eosinofilos',
-  'basófilos', 'basofilos'
+  'basófilos', 'basofilos',
+  'bastonetes', 'bastonete',
+  'segmentados', 'segmentado'
 ];
 
 /**
