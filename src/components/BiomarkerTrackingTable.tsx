@@ -338,7 +338,7 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
                         <TableCell 
                           key={examId}
                           className={cn(
-                            "text-center font-semibold cursor-pointer hover:bg-purple-100 transition-colors group relative",
+                            "text-center font-semibold cursor-pointer hover:bg-rest-blue/10 transition-colors group relative",
                   value && value.status === 'normal' && "text-green-700 font-bold",
                   value && (value.status === 'alto' || value.status === 'baixo') && "text-amber-700 font-bold",
                             !value && "text-gray-400"
