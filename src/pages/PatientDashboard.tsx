@@ -161,9 +161,24 @@ export default function PatientDashboard() {
       const biomarkerMap = new Map<string, any>();
       const examDatesSet = new Set<string>();
 
-      data?.forEach((result: any) => {
-        const originalName = result.biomarker_name;
-        const normalizedKey = normalizeBiomarkerName(originalName);
+        // Lista de biomarcadores a serem excluídos (títulos/cabeçalhos do laudo)
+        const EXCLUDED_BIOMARKERS = [
+          'hemograma',
+          'leucograma',
+          'plaquetograma',
+          'eritrograma',
+          'série vermelha',
+          'serie vermelha'
+        ];
+
+        data?.forEach((result: any) => {
+          const originalName = result.biomarker_name;
+          const normalizedKey = normalizeBiomarkerName(originalName);
+          
+          // Pular biomarcadores que são apenas títulos
+          if (EXCLUDED_BIOMARKERS.includes(normalizedKey)) {
+            return;
+          }
         
         const examId = result.exams.id;
         const examDate = result.exams.exam_date || result.exams.created_at;
