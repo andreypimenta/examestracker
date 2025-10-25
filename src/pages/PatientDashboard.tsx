@@ -215,8 +215,15 @@ export default function PatientDashboard() {
         examDatesSet.add(`${examId}|${examDate}|${isEstimatedDate ? 'estimated' : 'manual'}`);
 
         // Normalizar categoria usando a tabela de referência primeiro
-        const rawCategory = tableMatch?.category || result.category || categorizeBiomarker(originalName);
-        const category = normalizeCategoryName(rawCategory);
+        // Se a tabela de normalização já definiu a categoria, usar ela diretamente
+        // Caso contrário, normalizar a categoria vinda do banco ou fazer categorização automática
+        let category: string;
+        if (tableMatch?.category) {
+          category = tableMatch.category; // Usar categoria da tabela de normalização diretamente
+        } else {
+          const rawCategory = result.category || categorizeBiomarker(originalName);
+          category = normalizeCategoryName(rawCategory); // Normalizar apenas se não veio da tabela
+        }
 
         // Se biomarcador não existe, criar entrada
         if (!biomarkerMap.has(normalizedKey)) {
