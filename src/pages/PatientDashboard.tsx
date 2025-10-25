@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { categorizeBiomarker } from '@/utils/biomarkerCategories';
 import { normalizeBiomarkerWithTable } from '@/utils/biomarkerNormalization';
 import { CATEGORY_DISPLAY_ORDER, BIOMARKER_DISPLAY_ORDER, getCategoryOrder, getBiomarkerOrder } from '@/utils/biomarkerDisplayOrder';
+import { isLeukocyteType } from '@/utils/leukocyteFormatter';
 
 /**
  * Normaliza nome do biomarcador para deduplicação
@@ -282,17 +283,47 @@ export default function PatientDashboard() {
 
         const biomarkerData = biomarkerMap.get(normalizedKey)!;
         
-        // Adicionar valor do exame
-        if (!biomarkerData.values.has(examId)) {
-          biomarkerData.values.set(examId, {
-            result_id: result.id,
-            exam_id: examId,
-            exam_date: examDate,
-            value: result.value,
-            value_numeric: result.value_numeric,
-            status: result.status,
-            manually_corrected: result.manually_corrected || false,
-          });
+        // Detectar se é leucócito para consolidar valores absolutos e percentuais
+        const isLeukocyte = isLeukocyteType(originalName);
+        
+        if (isLeukocyte) {
+          const examValues = biomarkerData.values.get(examId);
+          
+          // Se já existe valor absoluto, adicionar percentual a ele
+          if (examValues && result.unit === '%') {
+            examValues.percentValue = result.value_numeric || result.value;
+            // Não adicionar nova entrada, apenas atualizar a existente
+          }
+          // Se é valor absoluto, criar/atualizar entrada
+          else if (result.unit === '/mm³' || result.unit === 'mil/mm³' || result.unit === '/µL') {
+            if (!examValues) {
+              biomarkerData.values.set(examId, {
+                result_id: result.id,
+                exam_id: examId,
+                exam_date: examDate,
+                value: result.value,
+                value_numeric: result.value_numeric,
+                percentValue: null, // Será preenchido se houver valor %
+                status: result.status,
+                manually_corrected: result.manually_corrected || false,
+              });
+            }
+            // Forçar unidade para /mm³
+            biomarkerData.unit = '/mm³';
+          }
+        } else {
+          // Não é leucócito, comportamento padrão
+          if (!biomarkerData.values.has(examId)) {
+            biomarkerData.values.set(examId, {
+              result_id: result.id,
+              exam_id: examId,
+              exam_date: examDate,
+              value: result.value,
+              value_numeric: result.value_numeric,
+              status: result.status,
+              manually_corrected: result.manually_corrected || false,
+            });
+          }
         }
       });
 

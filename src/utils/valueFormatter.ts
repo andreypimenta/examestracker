@@ -18,7 +18,10 @@ export function formatBiomarkerValue(
   
   // Valores decimais - limitar casas decimais baseado no biomarcador
   const decimalPlaces = getDecimalPlaces(biomarkerName, unit);
-  return numValue.toFixed(decimalPlaces);
+  const formatted = numValue.toFixed(decimalPlaces);
+  
+  // Remover zeros desnecessários: 4903.00 → 4903, mas 7.7 permanece 7.7
+  return formatted.replace(/\.0+$/, '');
 }
 
 function getDecimalPlaces(biomarkerName: string, unit?: string): number {

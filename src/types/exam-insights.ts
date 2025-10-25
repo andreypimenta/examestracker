@@ -10,6 +10,7 @@ export interface ExamInsight {
   observacao: string | null;
   explicacao_leiga: string | null;
   possiveis_causas_alteracao: string[] | null;
+  percentValue?: number | string | null;
 }
 
 export interface ClinicalAnalysis {

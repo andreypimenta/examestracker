@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { ExamDateEditDialog } from './ExamDateEditDialog';
 import { BiomarkerEditDialog } from './BiomarkerEditDialog';
 import { formatBiomarkerValue } from '@/utils/valueFormatter';
+import { combineLeukocyteValues, isLeukocyteType } from '@/utils/leukocyteFormatter';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,7 @@ interface BiomarkerValue {
   value_numeric: number | null;
   status: 'normal' | 'alto' | 'baixo';
   manually_corrected?: boolean;
+  percentValue?: number | string | null;
 }
 
 interface BiomarkerRow {
@@ -104,7 +106,18 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
         const [examId] = dateKey?.split('|') || [];
         if (!examId) return '-';
         const value = row.values.find(v => v.exam_id === examId);
-        return value ? value.value : '-';
+        if (!value) return '-';
+        
+        // Combinar valores absolutos e percentuais para leucócitos
+        if (value.percentValue && isLeukocyteType(row.biomarker_name)) {
+          return combineLeukocyteValues(
+            value.value_numeric ?? value.value,
+            value.percentValue,
+            row.biomarker_name
+          );
+        }
+        
+        return value.value;
       });
 
       return [
@@ -213,6 +226,17 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
         const values = examDates.map(dateKey => {
           const [examId] = dateKey.split('|');
           const value = row.values.find(v => v.exam_id === examId);
+          if (!value) return '-';
+          
+          // Combinar valores absolutos e percentuais para leucócitos
+          if (value.percentValue && isLeukocyteType(row.biomarker_name)) {
+            return combineLeukocyteValues(
+              value.value_numeric ?? value.value,
+              value.percentValue,
+              row.biomarker_name
+            );
+          }
+          
           return value?.value_numeric !== null ? value?.value_numeric : (value?.value || '-');
         });
 
@@ -526,7 +550,20 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
                               >
                                 {value ? (
                                   <div className="flex items-center justify-center gap-1">
-                                    <span>{formatBiomarkerValue(value.value_numeric ?? value.value, row.biomarker_name, row.unit)}</span>
+                                    <span>
+                                      {value.percentValue && isLeukocyteType(row.biomarker_name)
+                                        ? combineLeukocyteValues(
+                                            value.value_numeric ?? value.value, 
+                                            value.percentValue,
+                                            row.biomarker_name
+                                          )
+                                        : formatBiomarkerValue(
+                                            value.value_numeric ?? value.value, 
+                                            row.biomarker_name, 
+                                            row.unit
+                                          )
+                                      }
+                                    </span>
                                     {value.manually_corrected && (
                                       <TooltipProvider>
                                         <Tooltip>
