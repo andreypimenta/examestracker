@@ -52,6 +52,8 @@ function normalizeCategoryName(category: string | null): string {
     'hematológico': 'hematologico',
     'hematologico': 'hematologico',
     'hemograma': 'hematologico',
+    'série vermelha': 'hematologico',
+    'serie vermelha': 'hematologico',
     'cardiovascular': 'cardiovascular',
     'metabólico': 'metabolico',
     'metabolico': 'metabolico',
@@ -169,11 +171,12 @@ export default function PatientDashboard() {
         
         examDatesSet.add(`${examId}|${examDate}|${isEstimatedDate ? 'estimated' : 'manual'}`);
 
+        // Normalizar categoria ANTES de verificar duplicação
+        const rawCategory = result.category || categorizeBiomarker(originalName);
+        const category = normalizeCategoryName(rawCategory);
+
         // Se biomarcador não existe, criar entrada
         if (!biomarkerMap.has(normalizedKey)) {
-          const rawCategory = result.category || categorizeBiomarker(originalName);
-          const category = normalizeCategoryName(rawCategory);
-          
           biomarkerMap.set(normalizedKey, {
             biomarker_name: originalName,
             unit: result.unit,
@@ -187,6 +190,9 @@ export default function PatientDashboard() {
           // Biomarcador já existe, verificar se devemos atualizar metadados
           const existing = biomarkerMap.get(normalizedKey)!;
           const newScore = calculateCompletenessScore(result);
+          
+          // Atualizar categoria para garantir consistência
+          existing.category = category;
           
           // Atualizar metadados se este registro for mais completo
           if (newScore > existing.completeness_score) {
