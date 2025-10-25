@@ -93,11 +93,14 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
     const headers = [
       'Biomarcador',
       ...examDates.map(d => format(new Date(d), 'dd/MM/yy', { locale: ptBR })),
-      'Unidade',
       'Referência'
     ];
 
     const rows = filteredData.map(row => {
+      const biomarkerWithUnit = row.unit 
+        ? `${row.biomarker_name} (${row.unit})`
+        : row.biomarker_name;
+      
       const refText = row.reference_min !== null && row.reference_max !== null
         ? `${formatBiomarkerValue(row.reference_min, row.biomarker_name, row.unit)}-${formatBiomarkerValue(row.reference_max, row.biomarker_name, row.unit)}`
         : '-';
@@ -121,9 +124,8 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
       });
 
       return [
-        row.biomarker_name,
+        biomarkerWithUnit,
         ...values,
-        row.unit || '-',
         refText
       ];
     });
@@ -151,9 +153,7 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
         overflow: 'linebreak'
       },
       columnStyles: {
-        0: { cellWidth: 40 }, // Biomarcador
-        1: { cellWidth: 20 }, // Unidade
-        2: { cellWidth: 25 }, // Referência
+        0: { cellWidth: 50 }, // Biomarcador (mais largo para incluir unidade)
       }
     });
     
@@ -190,7 +190,6 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
         const [, date] = dateKey.split('|');
         return date ? format(new Date(date), 'dd/MM/yy', { locale: ptBR }) : '';
       }),
-      'Unidade',
       'Referência',
       'Tendência'
     ];
@@ -219,6 +218,10 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
       });
       
       sortedBiomarkers.forEach(row => {
+        const biomarkerWithUnit = row.unit 
+          ? `${row.biomarker_name} (${row.unit})`
+          : row.biomarker_name;
+        
         const refText = row.reference_min !== null && row.reference_max !== null
           ? `${formatBiomarkerValue(row.reference_min, row.biomarker_name, row.unit)}-${formatBiomarkerValue(row.reference_max, row.biomarker_name, row.unit)}`
           : '-';
@@ -246,9 +249,8 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
           : 'N/A';
 
         excelData.push([
-          row.biomarker_name,
+          biomarkerWithUnit,
           ...values,
-          row.unit || '-',
           refText,
           trendText
         ]);
@@ -260,9 +262,8 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
 
     // Aplicar larguras de coluna
     const colWidths = [
-      { wch: 25 }, // Biomarcador
+      { wch: 30 }, // Biomarcador (mais largo para incluir unidade)
       ...examDates.map(() => ({ wch: 12 })), // Datas
-      { wch: 10 }, // Unidade
       { wch: 15 }, // Referência
       { wch: 12 }  // Tendência
     ];
@@ -465,9 +466,6 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
                     </TableHead>
                   );
                 })}
-                <TableHead className="text-center text-gray-900 font-bold text-sm uppercase tracking-wide min-w-[100px]">
-                  Unidade
-                </TableHead>
                 <TableHead className="text-center text-gray-900 font-bold text-sm uppercase tracking-wide min-w-[150px]">
                   Referência
                 </TableHead>
@@ -503,7 +501,7 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
                       className="bg-gradient-to-r from-rest-blue/10 to-rest-cyan/5 hover:from-rest-blue/15 hover:to-rest-cyan/10"
                     >
                       <TableCell 
-                        colSpan={examDates.length + 4}
+                        colSpan={examDates.length + 3}
                         className="sticky left-0 z-10 font-bold text-rest-blue uppercase tracking-wide text-sm py-3 px-6 border-y-2 border-rest-blue/20"
                       >
                         <div className="flex items-center gap-2">
@@ -530,7 +528,14 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
                           className="border-b border-gray-100 hover:bg-rest-blue/10 transition-colors"
                         >
                           <TableCell className="sticky left-0 z-10 bg-white hover:bg-rest-blue/10 font-semibold text-gray-900 border-r border-gray-200">
-                            {row.biomarker_name}
+                            <div className="flex flex-col">
+                              <span>{row.biomarker_name}</span>
+                              {row.unit && (
+                                <span className="text-[10px] text-gray-500 font-normal">
+                                  ({row.unit})
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           
                           {examDates.map((dateKey) => {
@@ -594,9 +599,6 @@ export function BiomarkerTrackingTable({ patientId, data, examDates, patientName
                             );
                           })}
                           
-                          <TableCell className="text-gray-600 font-medium text-center">
-                            {row.unit || '-'}
-                          </TableCell>
                           
                           <TableCell className="text-gray-600 text-sm font-medium text-center">
                             {row.reference_min !== null && row.reference_max !== null
