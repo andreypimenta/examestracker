@@ -67,6 +67,28 @@ function normalizeCategoryName(category: string | null): string {
   return categoryMap[normalized] || 'minerais';
 }
 
+/**
+ * Ordem customizada para biomarcadores do Hemograma
+ */
+const HEMOGRAMA_ORDER = [
+  'hemoglobina',
+  'hemácias',
+  'hematócrito',
+  'vcm',
+  'chcm',
+  'hcm',
+  'rdw'
+];
+
+/**
+ * Retorna índice de ordenação para biomarcadores do hemograma
+ */
+function getHemogramaOrder(biomarkerName: string): number {
+  const normalized = biomarkerName.toLowerCase().trim();
+  const index = HEMOGRAMA_ORDER.findIndex(item => normalized.includes(item));
+  return index === -1 ? 999 : index;
+}
+
 export default function PatientDashboard() {
   const { id } = useParams();
 
@@ -179,11 +201,21 @@ export default function PatientDashboard() {
         values: Array.from(b.values.values())
       }));
 
-      // Ordenar por categoria e depois por nome
+      // Ordenar por categoria e depois por ordem específica ou nome
       biomarkers.sort((a, b) => {
         if (a.category !== b.category) {
           return a.category.localeCompare(b.category);
         }
+        
+        // Ordem customizada para Hemograma
+        if (a.category === 'hematologico') {
+          const orderA = getHemogramaOrder(a.biomarker_name);
+          const orderB = getHemogramaOrder(b.biomarker_name);
+          if (orderA !== orderB) {
+            return orderA - orderB;
+          }
+        }
+        
         return a.biomarker_name.localeCompare(b.biomarker_name);
       });
 
