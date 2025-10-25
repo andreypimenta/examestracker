@@ -364,9 +364,15 @@ export default function PatientDashboard() {
             const examDate = valueData.exam_date;
             const valueExamKey = examDate || examId;
             
-            if (valueExamKey === dateKey && valueData.value_numeric) {
-              totalLeukocytes = Number(valueData.value_numeric);
-              break;
+            // Buscar por dateKey E aceitar value se value_numeric for null
+            if (valueExamKey === dateKey) {
+              const rawValue = valueData.value_numeric || valueData.value;
+              if (rawValue) {
+                totalLeukocytes = Number(rawValue);
+                if (!isNaN(totalLeukocytes) && totalLeukocytes > 0) {
+                  break; // Encontrou valor válido
+                }
+              }
             }
           }
         }
