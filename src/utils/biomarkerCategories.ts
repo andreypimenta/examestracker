@@ -76,18 +76,62 @@ export const BIOMARKER_CATEGORIES = {
       'Bilirrubina Indireta'
     ]
   },
-  minerais: {
-    name: 'Minerais e Vitaminas',
+  ions: {
+    name: 'Íons',
     biomarkers: [
-      'Ferro',
-      'Ferritina',
-      'Cálcio',
-      'Vitamina D',
-      'Vitamina B12',
-      'Ácido Fólico',
-      'Magnésio',
+      'Sódio',
       'Potássio',
-      'Sódio'
+      'Cálcio',
+      'Cálcio Iônico',
+      'Magnésio',
+      'Fósforo'
+    ]
+  },
+  vitaminas_minerais: {
+    name: 'Vitaminas e Minerais',
+    biomarkers: [
+      'Alumínio',
+      'Capacidade Latente de Ligação de Ferro',
+      'Capacidade Total de Ligação de Ferro',
+      'Cobre',
+      'Ferritina',
+      'Ferro',
+      'Ferro Sérico',
+      'Selênio',
+      'Transferrina',
+      'Vitamina B12',
+      'Vitamina D',
+      'Vitamina D (25-OH)',
+      'Zinco',
+      'Ácido Fólico',
+      'Índice de Saturação de Transferrina'
+    ]
+  },
+  marcadores_inflamatorios: {
+    name: 'Marcadores Inflamatórios',
+    biomarkers: [
+      'Homocisteína',
+      'PCR',
+      'Proteína C Reativa',
+      'Proteína C Reativa (PCR) Ultrassensível',
+      'VHS',
+      'VHS 1ª Hora'
+    ]
+  },
+  marcadores_musculares: {
+    name: 'Marcadores Musculares',
+    biomarkers: [
+      'CPK',
+      'CPK - Creatina Fosfoquinase',
+      'Creatina Fosfoquinase',
+      'LDH'
+    ]
+  },
+  marcadores_prostaticos: {
+    name: 'Marcadores Prostáticos',
+    biomarkers: [
+      'PSA Total',
+      'PSA Livre'
     ]
   }
 };
@@ -103,7 +147,7 @@ export function categorizeBiomarker(biomarkerName: string): CategoryKey {
       return key as CategoryKey;
     }
   }
-  return 'minerais'; // fallback
+  return 'vitaminas_minerais'; // fallback
 }
 
 export function getCategoryColor(category: CategoryKey): string {
@@ -114,7 +158,11 @@ export function getCategoryColor(category: CategoryKey): string {
     hormonal: 'hsl(var(--chart-4))',
     renal: 'hsl(var(--chart-5))',
     hepatico: 'hsl(var(--chart-1))',
-    minerais: 'hsl(var(--chart-2))'
+    ions: 'hsl(var(--chart-3))',
+    vitaminas_minerais: 'hsl(var(--chart-2))',
+    marcadores_inflamatorios: 'hsl(var(--chart-4))',
+    marcadores_musculares: 'hsl(var(--chart-5))',
+    marcadores_prostaticos: 'hsl(var(--chart-1))'
   };
   return colors[category];
 }

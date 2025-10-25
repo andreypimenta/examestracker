@@ -44,31 +44,93 @@ function calculateCompletenessScore(data: any): number {
  * Normaliza nome da categoria para unificar variações
  */
 function normalizeCategoryName(category: string | null): string {
-  if (!category) return 'minerais';
+  if (!category) return 'outros';
   
   const normalized = category.toLowerCase().trim();
   
   const categoryMap: Record<string, string> = {
+    // Hematológico
     'hematologia': 'hematologico',
     'eritrograma': 'hematologico',
+    'leucograma': 'hematologico',
     'hematológico': 'hematologico',
     'hematologico': 'hematologico',
     'hemograma': 'hematologico',
     'série vermelha': 'hematologico',
     'serie vermelha': 'hematologico',
-    'cardiovascular': 'cardiovascular',
+    'série plaquetária': 'hematologico',
+    'serie plaquetaria': 'hematologico',
+    
+    // Metabólico
     'metabólico': 'metabolico',
     'metabolico': 'metabolico',
-    'hormonal': 'hormonal',
-    'renal': 'renal',
+    'bioquímica': 'metabolico',
+    'bioquimica': 'metabolico',
+    'perfil lipídico': 'metabolico',
+    'perfil lipidico': 'metabolico',
+    'risco cardiovascular': 'metabolico',
+    'glicemia e diabetes': 'metabolico',
+    'metabolismo da glicose': 'metabolico',
+    'metabolismo': 'metabolico',
+    'fator cardiovascular': 'metabolico',
+    'cardiovascular': 'metabolico',
+    
+    // Hepático
     'hepático': 'hepatico',
     'hepatico': 'hepatico',
-    'minerais': 'minerais',
-    'vitaminas': 'minerais',
-    'minerais e vitaminas': 'minerais'
+    'função hepática': 'hepatico',
+    'funcao hepatica': 'hepatico',
+    
+    // Renal
+    'renal': 'renal',
+    'função renal': 'renal',
+    'funcao renal': 'renal',
+    
+    // ÍONS
+    'íons': 'ions',
+    'ions': 'ions',
+    'eletrólitos': 'ions',
+    'eletrolitos': 'ions',
+    'ionograma': 'ions',
+    
+    // Hormonal
+    'hormonal': 'hormonal',
+    'hormônios sexuais': 'hormonal',
+    'hormonios sexuais': 'hormonal',
+    'função tireoideana': 'hormonal',
+    'funcao tireoideana': 'hormonal',
+    'tireóide': 'hormonal',
+    'tireoide': 'hormonal',
+    
+    // Vitaminas e Minerais
+    'minerais': 'vitaminas_minerais',
+    'vitaminas': 'vitaminas_minerais',
+    'minerais e vitaminas': 'vitaminas_minerais',
+    'vitaminas e minerais': 'vitaminas_minerais',
+    'metabolismo do ferro': 'vitaminas_minerais',
+    'metais': 'vitaminas_minerais',
+    'metais pesados': 'vitaminas_minerais',
+    
+    // MARCADORES INFLAMATÓRIOS
+    'marcadores inflamatórios': 'marcadores_inflamatorios',
+    'marcadores inflamatorios': 'marcadores_inflamatorios',
+    'inflamação': 'marcadores_inflamatorios',
+    'inflamacao': 'marcadores_inflamatorios',
+    'imunologia': 'marcadores_inflamatorios',
+    
+    // MARCADORES MUSCULARES
+    'marcadores musculares': 'marcadores_musculares',
+    'músculos': 'marcadores_musculares',
+    'musculos': 'marcadores_musculares',
+    
+    // MARCADORES PROSTÁTICOS
+    'marcadores prostáticos': 'marcadores_prostaticos',
+    'marcadores prostaticos': 'marcadores_prostaticos',
+    'próstata': 'marcadores_prostaticos',
+    'prostata': 'marcadores_prostaticos'
   };
   
-  return categoryMap[normalized] || 'minerais';
+  return categoryMap[normalized] || 'outros';
 }
 
 export default function PatientDashboard() {
