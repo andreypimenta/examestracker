@@ -13,19 +13,36 @@ import { CATEGORY_DISPLAY_ORDER, BIOMARKER_DISPLAY_ORDER, getCategoryOrder, getB
 import { isLeukocyteType } from '@/utils/leukocyteFormatter';
 
 /**
- * Normaliza nome do biomarcador para deduplicação
+ * Normaliza e simplifica nomes de biomarcadores
  */
-function normalizeBiomarkerName(name: string): string {
-  if (!name) return "";
+function normalizeAndSimplifyBiomarkerName(name: string): { 
+  normalizedKey: string; 
+  displayName: string;
+} {
+  if (!name) return { normalizedKey: "", displayName: "" };
   
   let normalized = name.toLowerCase();
-  normalized = normalized.replace(/\([^)]*\)/g, '');
+  let displayName = name;
   
+  // Simplificar nomes específicos de leucócitos
+  if (normalized.includes('neutrófilos bastonetes') || normalized.includes('neutrofilos bastonetes')) {
+    displayName = 'Bastonetes';
+    normalized = 'bastonetes';
+  } else if (normalized.includes('neutrófilos segmentados') || normalized.includes('neutrofilos segmentados')) {
+    displayName = 'Segmentados';
+    normalized = 'segmentados';
+  }
+  
+  // Remover parênteses e palavras de ruído para normalização
+  normalized = normalized.replace(/\([^)]*\)/g, '');
   const noiseWords = ['de', 'da', 'do', 'jejum', 'soro', 'sangue', 'total', '-'];
   const words = normalized.split(/\s+/);
   const filtered = words.filter(w => w.trim() && !noiseWords.includes(w.trim()));
   
-  return filtered.join(' ').trim();
+  return { 
+    normalizedKey: filtered.join(' ').trim(),
+    displayName 
+  };
 }
 
 /**
@@ -202,9 +219,12 @@ export default function PatientDashboard() {
       
       if (error) throw error;
 
-      // Estruturar dados por biomarcador com deduplicação
+      // Estruturar dados por biomarcador com deduplicação e consolidação de leucócitos
       const biomarkerMap = new Map<string, any>();
       const examDatesSet = new Set<string>();
+      
+      // Mapa temporário para consolidar valores por data (para leucócitos)
+      const leukocytesByDate = new Map<string, Map<string, { absolute: any, percent: any }>>();
 
         // Lista de biomarcadores a serem excluídos (títulos/cabeçalhos do laudo)
         const EXCLUDED_BIOMARKERS = [
@@ -219,14 +239,16 @@ export default function PatientDashboard() {
         data?.forEach((result: any) => {
           const originalName = result.biomarker_name;
           
-          // Primeiro tentar normalizar usando a tabela de referência
+          // Normalizar e simplificar nome
+          const { normalizedKey, displayName } = normalizeAndSimplifyBiomarkerName(originalName);
+          
+          // Tentar normalizar usando a tabela de referência
           const tableMatch = normalizeBiomarkerWithTable(originalName);
-          const normalizedKey = tableMatch 
-            ? normalizeBiomarkerName(tableMatch.normalizedName)
-            : normalizeBiomarkerName(originalName);
+          const finalKey = tableMatch ? normalizeAndSimplifyBiomarkerName(tableMatch.normalizedName).normalizedKey : normalizedKey;
+          const finalDisplayName = tableMatch?.normalizedName || displayName;
           
           // Pular biomarcadores que são apenas títulos
-          if (EXCLUDED_BIOMARKERS.includes(normalizedKey)) {
+          if (EXCLUDED_BIOMARKERS.includes(finalKey)) {
             return;
           }
         
@@ -236,21 +258,44 @@ export default function PatientDashboard() {
         
         examDatesSet.add(`${examId}|${examDate}|${isEstimatedDate ? 'estimated' : 'manual'}`);
 
-        // Normalizar categoria usando a tabela de referência primeiro
-        // Se a tabela de normalização já definiu a categoria, usar ela diretamente
-        // Caso contrário, normalizar a categoria vinda do banco ou fazer categorização automática
+        // Normalizar categoria
         let category: string;
         if (tableMatch?.category) {
-          category = tableMatch.category; // Usar categoria da tabela de normalização diretamente
+          category = tableMatch.category;
         } else {
           const rawCategory = result.category || categorizeBiomarker(originalName);
-          category = normalizeCategoryName(rawCategory); // Normalizar apenas se não veio da tabela
+          category = normalizeCategoryName(rawCategory);
+        }
+
+        // Detectar se é leucócito para consolidar por data
+        const isLeukocyte = isLeukocyteType(originalName);
+        
+        if (isLeukocyte) {
+          // Criar chave única por data e biomarcador
+          const dateKey = examDate || examId;
+          if (!leukocytesByDate.has(dateKey)) {
+            leukocytesByDate.set(dateKey, new Map());
+          }
+          const dateMap = leukocytesByDate.get(dateKey)!;
+          
+          if (!dateMap.has(finalKey)) {
+            dateMap.set(finalKey, { absolute: null, percent: null });
+          }
+          
+          const leukocyteData = dateMap.get(finalKey)!;
+          
+          // Armazenar valor absoluto ou percentual
+          if (result.unit === '%') {
+            leukocyteData.percent = result;
+          } else if (result.unit === '/mm³' || result.unit === 'mil/mm³' || result.unit === '/µL') {
+            leukocyteData.absolute = result;
+          }
         }
 
         // Se biomarcador não existe, criar entrada
-        if (!biomarkerMap.has(normalizedKey)) {
-          biomarkerMap.set(normalizedKey, {
-            biomarker_name: tableMatch?.normalizedName || originalName,
+        if (!biomarkerMap.has(finalKey)) {
+          biomarkerMap.set(finalKey, {
+            biomarker_name: finalDisplayName,
             unit: tableMatch?.unit || result.unit,
             reference_min: result.reference_min,
             reference_max: result.reference_max,
@@ -261,19 +306,16 @@ export default function PatientDashboard() {
           });
         } else {
           // Biomarcador já existe, verificar se devemos atualizar metadados
-          const existing = biomarkerMap.get(normalizedKey)!;
+          const existing = biomarkerMap.get(finalKey)!;
           const newScore = calculateCompletenessScore(result);
           
-          // Só atualizar categoria se a nova for da tabela de normalização
-          // e a existente NÃO for da tabela (proteção contra sobrescrita)
           if (tableMatch?.category && existing.category_source !== 'normalization_table') {
             existing.category = category;
             existing.category_source = 'normalization_table';
           }
           
-          // Atualizar metadados se este registro for mais completo
           if (newScore > existing.completeness_score) {
-            existing.biomarker_name = tableMatch?.normalizedName || originalName;
+            existing.biomarker_name = finalDisplayName;
             existing.unit = result.unit || existing.unit;
             existing.reference_min = result.reference_min ?? existing.reference_min;
             existing.reference_max = result.reference_max ?? existing.reference_max;
@@ -281,38 +323,10 @@ export default function PatientDashboard() {
           }
         }
 
-        const biomarkerData = biomarkerMap.get(normalizedKey)!;
+        const biomarkerData = biomarkerMap.get(finalKey)!;
         
-        // Detectar se é leucócito para consolidar valores absolutos e percentuais
-        const isLeukocyte = isLeukocyteType(originalName);
-        
-        if (isLeukocyte) {
-          const examValues = biomarkerData.values.get(examId);
-          
-          // Se já existe valor absoluto, adicionar percentual a ele
-          if (examValues && result.unit === '%') {
-            examValues.percentValue = result.value_numeric || result.value;
-            // Não adicionar nova entrada, apenas atualizar a existente
-          }
-          // Se é valor absoluto, criar/atualizar entrada
-          else if (result.unit === '/mm³' || result.unit === 'mil/mm³' || result.unit === '/µL') {
-            if (!examValues) {
-              biomarkerData.values.set(examId, {
-                result_id: result.id,
-                exam_id: examId,
-                exam_date: examDate,
-                value: result.value,
-                value_numeric: result.value_numeric,
-                percentValue: null, // Será preenchido se houver valor %
-                status: result.status,
-                manually_corrected: result.manually_corrected || false,
-              });
-            }
-            // Forçar unidade para /mm³
-            biomarkerData.unit = '/mm³';
-          }
-        } else {
-          // Não é leucócito, comportamento padrão
+        // Para não-leucócitos ou casos onde não consolidamos, adicionar diretamente
+        if (!isLeukocyte) {
           if (!biomarkerData.values.has(examId)) {
             biomarkerData.values.set(examId, {
               result_id: result.id,
@@ -325,6 +339,40 @@ export default function PatientDashboard() {
             });
           }
         }
+      });
+      
+      // Segunda passagem: consolidar leucócitos por data
+      leukocytesByDate.forEach((dateMap, dateKey) => {
+        dateMap.forEach((leukocyteData, biomarkerKey) => {
+          const biomarkerInfo = biomarkerMap.get(biomarkerKey);
+          if (!biomarkerInfo) return;
+          
+          const { absolute, percent } = leukocyteData;
+          
+          // Priorizar valor absoluto como base
+          const primaryResult = absolute || percent;
+          if (!primaryResult) return;
+          
+          const examId = primaryResult.exams.id;
+          const examDate = primaryResult.exams.exam_date || primaryResult.exams.created_at;
+          
+          // Adicionar valor consolidado
+          biomarkerInfo.values.set(examId, {
+            result_id: primaryResult.id,
+            exam_id: examId,
+            exam_date: examDate,
+            value: absolute?.value || percent?.value,
+            value_numeric: absolute?.value_numeric || percent?.value_numeric,
+            percentValue: percent ? (percent.value_numeric || percent.value) : null,
+            status: primaryResult.status,
+            manually_corrected: primaryResult.manually_corrected || false,
+          });
+          
+          // Forçar unidade para /mm³ se houver valor absoluto
+          if (absolute) {
+            biomarkerInfo.unit = '/mm³';
+          }
+        });
       });
 
       // Converter Map para array e agrupar por categoria

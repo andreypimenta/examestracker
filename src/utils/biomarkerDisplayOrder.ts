@@ -29,6 +29,8 @@ export const BIOMARKER_DISPLAY_ORDER: Record<string, string[]> = {
     'RDW',
     'Leucócitos',
     'Neutrófilos',
+    'Bastonetes',
+    'Segmentados',
     'Linfócitos',
     'Monócitos',
     'Eosinófilos',
