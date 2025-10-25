@@ -12,9 +12,9 @@ export const BIOMARKER_REFERENCE_TABLE: Record<string, {
   'hgb': { normalizedName: 'Hemoglobina', category: 'hematologico', unit: 'g/dL' },
   
   'hemacias': { normalizedName: 'Hemácias', category: 'hematologico', unit: 'milhões/mm³' },
-  'segmentados (absoluto)': { normalizedName: 'Neutrófilos Segmentados (Absoluto)', category: 'hematologico', unit: '/mm³' },
-  'bastonetes (absoluto)': { normalizedName: 'Neutrófilos Bastonetes (Absoluto)', category: 'hematologico', unit: '/mm³' },
-  'linfócitos (absoluto)': { normalizedName: 'Linfócitos (Absoluto)', category: 'hematologico', unit: '/mm³' },
+  'segmentados (absoluto)': { normalizedName: 'Segmentados', category: 'hematologico', unit: '/mm³' },
+  'bastonetes (absoluto)': { normalizedName: 'Bastonetes', category: 'hematologico', unit: '/mm³' },
+  'linfócitos (absoluto)': { normalizedName: 'Linfócitos', category: 'hematologico', unit: '/mm³' },
   'linfocitos (absoluto)': { normalizedName: 'Linfócitos (Absoluto)', category: 'hematologico', unit: '/mm³' },
   'monócitos (absoluto)': { normalizedName: 'Monócitos (Absoluto)', category: 'hematologico', unit: '/mm³' },
   'monocitos (absoluto)': { normalizedName: 'Monócitos (Absoluto)', category: 'hematologico', unit: '/mm³' },
@@ -46,7 +46,10 @@ export const BIOMARKER_REFERENCE_TABLE: Record<string, {
   'wbc': { normalizedName: 'Leucócitos', category: 'hematologico', unit: '/µL' },
   
   'neutrofilos': { normalizedName: 'Neutrófilos', category: 'hematologico', unit: '/µL' },
-  'neutrofilos segmentados': { normalizedName: 'Neutrófilos', category: 'hematologico', unit: '/µL' },
+  'neutrofilos segmentados': { normalizedName: 'Segmentados', category: 'hematologico', unit: '/µL' },
+  'segmentados': { normalizedName: 'Segmentados', category: 'hematologico', unit: '/µL' },
+  'neutrofilos bastonetes': { normalizedName: 'Bastonetes', category: 'hematologico', unit: '/µL' },
+  'bastonetes': { normalizedName: 'Bastonetes', category: 'hematologico', unit: '/µL' },
   
   'linfocitos': { normalizedName: 'Linfócitos', category: 'hematologico', unit: '/µL' },
   
