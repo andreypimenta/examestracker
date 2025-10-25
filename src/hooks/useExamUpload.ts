@@ -500,6 +500,11 @@ export function useExamUpload() {
           const biomarkerName = normalizedInfo?.normalizedName || b.nome;
           const category = normalizedInfo?.category || b.categoria;
           
+          // Parse original value once
+          const originalValue = typeof b.resultado === 'string' 
+            ? parseFloat(b.resultado.replace(',', '.'))
+            : b.resultado;
+          
           // Normalize large values (like hemácias)
           const { normalizedValue, normalizedUnit } = normalizeHematologicalValue(
             b.resultado,
@@ -510,16 +515,20 @@ export function useExamUpload() {
           let valueNumeric: number | null = normalizedValue;
           let finalUnit = normalizedUnit || b.unidade;
           
-          // If still not normalized, try parsing
-          if (typeof b.resultado === 'string' || typeof b.resultado === 'number') {
-            const originalValue = typeof b.resultado === 'string' 
-              ? parseFloat(b.resultado.replace(',', '.'))
-              : b.resultado;
-            
-            // If normalization didn't change the value, use the parsed original
-            if (valueNumeric === originalValue || (typeof valueNumeric === 'number' && isNaN(valueNumeric))) {
-              valueNumeric = isNaN(originalValue) ? null : originalValue;
-            }
+          // If normalization didn't work, use the parsed original
+          if (valueNumeric === originalValue || (typeof valueNumeric === 'number' && isNaN(valueNumeric))) {
+            valueNumeric = isNaN(originalValue) ? null : originalValue;
+          }
+
+          // Normalize reference values if the main value was normalized
+          let normalizedRefMin = b.referencia_min;
+          let normalizedRefMax = b.referencia_max;
+          
+          // If the value was normalized (changed), normalize references too
+          if (valueNumeric !== null && !isNaN(originalValue) && valueNumeric !== originalValue && originalValue > 0) {
+            const normalizationFactor = valueNumeric / originalValue;
+            normalizedRefMin = b.referencia_min ? b.referencia_min * normalizationFactor : null;
+            normalizedRefMax = b.referencia_max ? b.referencia_max * normalizationFactor : null;
           }
 
           return {
@@ -529,8 +538,8 @@ export function useExamUpload() {
             value: String(b.resultado),
             value_numeric: valueNumeric,
             unit: finalUnit,
-            reference_min: b.referencia_min,
-            reference_max: b.referencia_max,
+            reference_min: normalizedRefMin,
+            reference_max: normalizedRefMax,
             status: b.status as "normal" | "alto" | "baixo" | "alterado",
             observation: b.observacao || null,
             deviation_percentage: b.desvio_percentual,
