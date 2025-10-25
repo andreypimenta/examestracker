@@ -234,19 +234,24 @@ export default function PatientDashboard() {
             reference_max: result.reference_max,
             category,
             values: new Map(),
-            completeness_score: calculateCompletenessScore(result)
+            completeness_score: calculateCompletenessScore(result),
+            category_source: tableMatch?.category ? 'normalization_table' : 'database'
           });
         } else {
           // Biomarcador já existe, verificar se devemos atualizar metadados
           const existing = biomarkerMap.get(normalizedKey)!;
           const newScore = calculateCompletenessScore(result);
           
-          // Atualizar categoria para garantir consistência
-          existing.category = category;
+          // Só atualizar categoria se a nova for da tabela de normalização
+          // e a existente NÃO for da tabela (proteção contra sobrescrita)
+          if (tableMatch?.category && existing.category_source !== 'normalization_table') {
+            existing.category = category;
+            existing.category_source = 'normalization_table';
+          }
           
           // Atualizar metadados se este registro for mais completo
           if (newScore > existing.completeness_score) {
-            existing.biomarker_name = originalName;
+            existing.biomarker_name = tableMatch?.normalizedName || originalName;
             existing.unit = result.unit || existing.unit;
             existing.reference_min = result.reference_min ?? existing.reference_min;
             existing.reference_max = result.reference_max ?? existing.reference_max;
