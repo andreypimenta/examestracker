@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { deduplicateExams } from "@/utils/examDeduplication";
 import { normalizeBiomarkerWithTable } from "@/utils/biomarkerNormalization";
 import { normalizeHematologicalValue, calculateAbsoluteReference } from "@/utils/valueNormalizer";
-import { biomarkerNormalizationService } from "@/services/BiomarkerNormalizationService";
+import { getBiomarkerNormalizationService } from "@/services/BiomarkerNormalizationService";
 
 const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/aws-proxy`;
 
@@ -487,7 +487,8 @@ export function useExamUpload() {
         
         // 🆕 NORMALIZAR BIOMARCADORES COM O NOVO SERVIÇO
         console.log('[syncExamToSupabase] 🔄 Normalizando biomarcadores...');
-        const validationResult = biomarkerNormalizationService.validatePayload({
+        const normalizationService = await getBiomarkerNormalizationService();
+        const validationResult = normalizationService.validatePayload({
           biomarcadores: dedupedExams.map(b => ({
             nome: b.nome,
             valor: b.resultado,
@@ -599,7 +600,8 @@ export function useExamUpload() {
                 const absoluteValue = (percentValue / 100) * leucocitosTotal;
                 
                 // Normalize the absolute biomarker name
-                const absoluteNameResult = biomarkerNormalizationService.validatePayload({
+                const normalizationService = await getBiomarkerNormalizationService();
+                const absoluteNameResult = normalizationService.validatePayload({
                   biomarcadores: [{ nome: `${biomarker.nome} (Absoluto)`, valor: absoluteValue, unidade: '/mm³' }],
                 });
                 
