@@ -24,9 +24,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, TrendingUp, TrendingDown, CheckCircle } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, CheckCircle, Brain } from "lucide-react";
 import { categorizeBiomarker } from "@/utils/biomarkerCategories";
 import { getCategoryOrder, getBiomarkerOrder } from "@/utils/biomarkerDisplayOrder";
+import { useExamAnalysis } from "@/hooks/useExamAnalysis";
 
 interface ExamResultsDialogProps {
   open: boolean;
@@ -38,6 +39,19 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const queryClient = useQueryClient();
+  const { analyzeExam, analyzing } = useExamAnalysis();
+
+  const handleGenerateInsights = async () => {
+    if (!examId) return;
+    
+    const result = await analyzeExam(examId);
+    
+    if (result) {
+      // Invalidar query para recarregar dados atualizados
+      queryClient.invalidateQueries({ queryKey: ["exam-results", examId] });
+    }
+  };
 
   const { data: examData, isLoading } = useQuery({
     queryKey: ["exam-results", examId],
@@ -230,6 +244,24 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
                   <SelectItem value="altered" className="rounded-lg">Apenas alterados</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Button
+                onClick={handleGenerateInsights}
+                disabled={analyzing || isLoading}
+                className="h-12 bg-gradient-to-r from-rest-blue to-rest-cyan hover:from-rest-blue/90 hover:to-rest-cyan/90 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                {analyzing ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Gerando Insights...
+                  </>
+                ) : (
+                  <>
+                    <Brain className="w-4 h-4 mr-2" />
+                    Gerar Insights
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         </div>
