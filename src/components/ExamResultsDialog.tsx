@@ -276,7 +276,7 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
                           <TableCell colSpan={4} className="py-3 px-6">
                             <div className="flex items-center gap-2">
                               <div className="w-1 h-6 bg-blue-500 rounded-full" />
-                              <span className="font-bold text-blue-700 uppercase tracking-wider text-sm">
+                              <span className="font-bold text-blue-500 uppercase tracking-wider text-sm">
                                 {category}
                               </span>
                             </div>
