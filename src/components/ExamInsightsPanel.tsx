@@ -124,7 +124,7 @@ export function ExamInsightsPanel({ exam }: ExamInsightsPanelProps) {
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {clinical_analysis.areas_atencao.map((area, idx) => (
-                <Badge key={idx} variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/30">
+                <Badge key={idx} variant="outline" className="bg-gradient-to-r from-rest-blue to-rest-cyan text-white border-0">
                   {area}
                 </Badge>
               ))}
