@@ -52,6 +52,20 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
 
       if (examError) throw examError;
 
+      // Buscar nome do paciente
+      let patientName = exam.patient_name_extracted || null;
+      if (exam.patient_id) {
+        const { data: patient } = await supabase
+          .from("patients")
+          .select("full_name")
+          .eq("id", exam.patient_id)
+          .single();
+        
+        if (patient) {
+          patientName = patient.full_name;
+        }
+      }
+
       const { data: results, error: resultsError } = await supabase
         .from("exam_results")
         .select("*")
@@ -60,7 +74,7 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
 
       if (resultsError) throw resultsError;
 
-      return { exam, results };
+      return { exam, results, patientName };
     },
     enabled: !!examId && open,
   });
@@ -160,7 +174,7 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                Resultados do Exame
+                {examData?.patientName || "Resultados do Exame"}
               </h2>
               {examData?.exam && (
                 <div className="space-y-1">
