@@ -6,6 +6,12 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
   Table,
   TableBody,
   TableCell,
@@ -28,6 +34,8 @@ import { Search, TrendingUp, TrendingDown, CheckCircle, Brain } from "lucide-rea
 import { categorizeBiomarker } from "@/utils/biomarkerCategories";
 import { getCategoryOrder, getBiomarkerOrder } from "@/utils/biomarkerDisplayOrder";
 import { useExamAnalysis } from "@/hooks/useExamAnalysis";
+import { ExamInsightsPanel } from "@/components/ExamInsightsPanel";
+import type { ExamWithInsights } from "@/types/exam-insights";
 
 interface ExamResultsDialogProps {
   open: boolean;
@@ -266,110 +274,147 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
           </div>
         </div>
 
-        {/* Tabela (sem Tabs) */}
-        <div className="p-0 flex-1 overflow-hidden flex flex-col mt-4">
-          <div className="flex-1 overflow-y-auto">
-            {isLoading ? (
-              <div className="space-y-2 p-4">
-                {[...Array(10)].map((_, i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
-                ))}
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gradient-to-r from-gray-50 to-white border-b-2 border-gray-200 hover:bg-gray-50">
-                    <TableHead className="text-gray-900 font-bold text-xs uppercase tracking-wider py-5 px-6">
-                      Biomarcador
-                    </TableHead>
-                    <TableHead className="text-right text-gray-900 font-bold text-xs uppercase tracking-wider py-5 px-6">
-                      Valor
-                    </TableHead>
-                    <TableHead className="text-right text-gray-900 font-bold text-xs uppercase tracking-wider py-5 px-6">
-                      Referência
-                    </TableHead>
-                    <TableHead className="text-center text-gray-900 font-bold text-xs uppercase tracking-wider py-5 px-6">
-                      Status
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {groupedResults.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-gray-500 py-8">
-                        Nenhum resultado encontrado
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    groupedResults.map(([category, results]) => (
-                      <>
-                        {/* Linha separadora de categoria */}
-                        <TableRow key={`category-${category}`} className="bg-gradient-to-r from-rest-blue to-rest-cyan border-y-2 border-blue-200">
-                          <TableCell colSpan={4} className="py-3 px-6">
-                            <div className="flex items-center gap-2">
-                              <div className="w-1 h-6 bg-white rounded-full" />
-                              <span className="font-bold text-white uppercase tracking-wider text-sm">
-                                {category}
-                              </span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        
-                        {/* Biomarcadores da categoria (ordenados) */}
-                        {results
-                          .sort((a, b) => {
-                            const orderA = getBiomarkerOrder(category, a.biomarker_name);
-                            const orderB = getBiomarkerOrder(category, b.biomarker_name);
-                            return orderA - orderB;
-                          })
-                          .map((result) => (
-                            <TableRow key={result.id} className="border-b border-gray-100 hover:bg-gray-50">
-                              <TableCell className="py-4 px-6">
-                                <div className="flex flex-col">
-                                  <span className="font-semibold text-gray-900">
-                                    {result.biomarker_name}
-                                  </span>
-                                  {result.unit && (
-                                    <span className="text-[10px] text-gray-500 font-normal">
-                                      ({result.unit})
-                                    </span>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right py-4 px-6">
-                                <span className="text-gray-900 font-mono">
-                                  {result.value}
-                                </span>
-                              </TableCell>
-                              <TableCell className="text-right py-4 px-6">
-                                <span className={`font-mono text-sm ${
-                                  result.reference_min !== null && result.reference_max !== null
-                                    ? 'text-gray-600'
-                                    : 'text-gray-400 italic'
-                                }`}>
-                                  {result.reference_min !== null && result.reference_max !== null
-                                    ? `${result.reference_min} - ${result.reference_max}`
-                                    : "N/A"}
-                                </span>
-                              </TableCell>
-                              <TableCell className="text-center py-4 px-6">
-                                {getStatusBadge(result.status)}
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        }
-                      </>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            )}
-          </div>
+        {/* Tabs para Resultados e Insights */}
+        <Tabs defaultValue="resultados" className="flex-1 overflow-hidden flex flex-col mt-4">
+          <TabsList className="mx-6 mb-4">
+            <TabsTrigger value="resultados">Resultados</TabsTrigger>
+            <TabsTrigger value="insights">Insights Clínicos</TabsTrigger>
+          </TabsList>
 
-          <div className="text-xs text-gray-600 text-center py-3 border-t border-gray-100">
-            Mostrando {filteredResults.length} de {stats.total} biomarcadores
-          </div>
-        </div>
+          <TabsContent value="resultados" className="flex-1 overflow-hidden flex flex-col m-0">
+            <div className="flex-1 overflow-y-auto">
+              {isLoading ? (
+                <div className="space-y-2 p-4">
+                  {[...Array(10)].map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gradient-to-r from-gray-50 to-white border-b-2 border-gray-200 hover:bg-gray-50">
+                      <TableHead className="text-gray-900 font-bold text-xs uppercase tracking-wider py-5 px-6">
+                        Biomarcador
+                      </TableHead>
+                      <TableHead className="text-right text-gray-900 font-bold text-xs uppercase tracking-wider py-5 px-6">
+                        Valor
+                      </TableHead>
+                      <TableHead className="text-right text-gray-900 font-bold text-xs uppercase tracking-wider py-5 px-6">
+                        Referência
+                      </TableHead>
+                      <TableHead className="text-center text-gray-900 font-bold text-xs uppercase tracking-wider py-5 px-6">
+                        Status
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {groupedResults.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-gray-500 py-8">
+                          Nenhum resultado encontrado
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      groupedResults.map(([category, results]) => (
+                        <>
+                          {/* Linha separadora de categoria */}
+                          <TableRow key={`category-${category}`} className="bg-gradient-to-r from-rest-blue to-rest-cyan border-y-2 border-blue-200">
+                            <TableCell colSpan={4} className="py-3 px-6">
+                              <div className="flex items-center gap-2">
+                                <div className="w-1 h-6 bg-white rounded-full" />
+                                <span className="font-bold text-white uppercase tracking-wider text-sm">
+                                  {category}
+                                </span>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                          
+                          {/* Biomarcadores da categoria (ordenados) */}
+                          {results
+                            .sort((a, b) => {
+                              const orderA = getBiomarkerOrder(category, a.biomarker_name);
+                              const orderB = getBiomarkerOrder(category, b.biomarker_name);
+                              return orderA - orderB;
+                            })
+                            .map((result) => (
+                              <TableRow key={result.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                <TableCell className="py-4 px-6">
+                                  <div className="flex flex-col">
+                                    <span className="font-semibold text-gray-900">
+                                      {result.biomarker_name}
+                                    </span>
+                                    {result.unit && (
+                                      <span className="text-[10px] text-gray-500 font-normal">
+                                        ({result.unit})
+                                      </span>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right py-4 px-6">
+                                  <span className="text-gray-900 font-mono">
+                                    {result.value}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-right py-4 px-6">
+                                  <span className={`font-mono text-sm ${
+                                    result.reference_min !== null && result.reference_max !== null
+                                      ? 'text-gray-600'
+                                      : 'text-gray-400 italic'
+                                  }`}>
+                                    {result.reference_min !== null && result.reference_max !== null
+                                      ? `${result.reference_min} - ${result.reference_max}`
+                                      : "N/A"}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-center py-4 px-6">
+                                  {getStatusBadge(result.status)}
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          }
+                        </>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+
+            <div className="text-xs text-gray-600 text-center py-3 border-t border-gray-100">
+              Mostrando {filteredResults.length} de {stats.total} biomarcadores
+            </div>
+          </TabsContent>
+
+          <TabsContent value="insights" className="flex-1 overflow-y-auto m-0 px-6">
+            {examData?.exam?.clinical_analysis ? (
+              <ExamInsightsPanel 
+                exam={{
+                  id: examData.exam.id,
+                  exam_date: examData.exam.exam_date,
+                  laboratory: examData.exam.laboratory,
+                  health_score: examData.exam.health_score,
+                  risk_category: examData.exam.risk_category,
+                  clinical_analysis: examData.exam.clinical_analysis,
+                  alerts: examData.exam.alerts,
+                  trends: examData.exam.trends,
+                  recommendations: examData.exam.recommendations,
+                  total_biomarkers: examData.exam.total_biomarkers,
+                  processing_status: examData.exam.processing_status,
+                } as unknown as ExamWithInsights} 
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full py-12 text-center">
+                <Brain className="w-16 h-16 text-gray-300 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                  Nenhum Insight Gerado
+                </h3>
+                <p className="text-gray-500 mb-6 max-w-md">
+                  Clique no botão "Gerar Insights" para obter uma análise clínica completa deste exame.
+                </p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
