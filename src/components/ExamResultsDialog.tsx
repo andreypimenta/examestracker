@@ -4,12 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ExamInsightsPanel } from "@/components/ExamInsightsPanel";
-import type { ExamWithInsights } from "@/types/exam-insights";
 import {
   Table,
   TableBody,
@@ -28,12 +23,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, TrendingUp, TrendingDown, CheckCircle, Brain, Loader2 } from "lucide-react";
-import { categorizeBiomarker, getCategoryColor } from "@/utils/biomarkerCategories";
+import { Search, TrendingUp, TrendingDown, CheckCircle } from "lucide-react";
+import { categorizeBiomarker } from "@/utils/biomarkerCategories";
 import { getCategoryOrder, getBiomarkerOrder } from "@/utils/biomarkerDisplayOrder";
-import { useExamAnalysis } from "@/hooks/useExamAnalysis";
 
 interface ExamResultsDialogProps {
   open: boolean;
@@ -45,8 +38,6 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const queryClient = useQueryClient();
-  const { analyzeExam, analyzing } = useExamAnalysis();
 
   const { data: examData, isLoading } = useQuery({
     queryKey: ["exam-results", examId],
@@ -155,18 +146,25 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
     }
   };
 
+  // Extrair categorias únicas dos resultados
+  const categories = useMemo(() => {
+    if (!examData?.results) return [];
+    return Array.from(new Set(examData.results.map(r => categorizeBiomarker(r.biomarker_name))));
+  }, [examData]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[95vw] max-w-6xl max-h-[90vh] overflow-hidden flex flex-col bg-white border border-gray-200">
-        <DialogHeader className="bg-gradient-to-br from-gray-50 via-white to-gray-50 border-b-2 border-gray-100 -mx-6 -mt-6 px-8 py-6">
-          <div className="flex items-start justify-between flex-wrap gap-4">
+        {/* Header igual ao BiomarkerTrackingTable */}
+        <div className="bg-gradient-to-br from-gray-50 via-white to-gray-50 border-b-2 border-gray-100 -mx-6 -mt-6 px-8 py-6">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <DialogTitle className="text-3xl font-bold text-gray-900 mb-2">
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">
                 Resultados do Exame
-              </DialogTitle>
+              </h2>
               {examData?.exam && (
-                <div className="text-gray-600 text-base space-y-1">
-                  <p className="font-medium">
+                <div className="space-y-1">
+                  <p className="text-gray-600 text-base">
                     {examData.exam.laboratory} | {new Date(examData.exam.exam_date).toLocaleDateString("pt-BR")}
                   </p>
                   <p className="text-gray-500 text-sm">
@@ -175,196 +173,153 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
                 </div>
               )}
             </div>
-          </div>
-        </DialogHeader>
 
-        <Tabs defaultValue="results" className="flex-1 overflow-hidden flex flex-col mt-4">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-100 border border-gray-200">
-            <TabsTrigger value="results" className="data-[state=active]:bg-white data-[state=active]:text-gray-900 text-gray-600 font-medium">
-              📊 Resultados
-            </TabsTrigger>
-            <TabsTrigger value="insights" className="data-[state=active]:bg-white data-[state=active]:text-gray-900 text-gray-600 font-medium">
-              🧠 Insights
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="results" className="flex-1 overflow-hidden flex flex-col space-y-4 mt-4">
-            {/* Filtros */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Filtros no header (lado direito) */}
+            <div className="flex items-center gap-3 flex-wrap">
               <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Buscar biomarcador..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                  className="pl-9 w-[220px] h-12 bg-white border-2 border-gray-200 hover:border-rest-blue rounded-xl text-gray-900 placeholder:text-gray-400"
                 />
               </div>
 
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                  <SelectValue placeholder="Todas as categorias" />
+                <SelectTrigger className="w-[220px] h-12 bg-white border-2 border-gray-200 hover:border-rest-blue rounded-xl font-semibold">
+                  <div className="w-2 h-2 rounded-full bg-rest-blue mr-2" />
+                  <SelectValue placeholder="Filtrar categoria" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border-gray-200">
-                  <SelectItem value="all">Todas as categorias</SelectItem>
-                  <SelectItem value="cardiovascular">Cardiovascular</SelectItem>
-                  <SelectItem value="metabolico">Metabólico</SelectItem>
-                  <SelectItem value="hematologico">Hematológico</SelectItem>
-                  <SelectItem value="hormonal">Hormonal</SelectItem>
-                  <SelectItem value="renal">Renal</SelectItem>
-                  <SelectItem value="hepatico">Hepático</SelectItem>
-                  <SelectItem value="minerais">Minerais/Vitaminas</SelectItem>
+                <SelectContent className="rounded-xl shadow-2xl">
+                  <SelectItem value="all" className="rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-rest-blue" />
+                      Todas as Categorias
+                    </div>
+                  </SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat} className="rounded-lg">
+                      {cat}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                <SelectTrigger className="w-[180px] h-12 bg-white border-2 border-gray-200 hover:border-rest-blue rounded-xl font-semibold">
                   <SelectValue placeholder="Todos os status" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border-gray-200">
-                  <SelectItem value="all">Todos os status</SelectItem>
-                  <SelectItem value="normal">Apenas normais</SelectItem>
-                  <SelectItem value="altered">Apenas alterados</SelectItem>
+                <SelectContent className="rounded-xl shadow-2xl">
+                  <SelectItem value="all" className="rounded-lg">Todos os status</SelectItem>
+                  <SelectItem value="normal" className="rounded-lg">Apenas normais</SelectItem>
+                  <SelectItem value="altered" className="rounded-lg">Apenas alterados</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+          </div>
+        </div>
 
-            {/* Tabela */}
-            <div className="flex-1 overflow-y-auto border border-gray-200 rounded-lg bg-white">
-              {isLoading ? (
-                <div className="space-y-2 p-4">
-                  {[...Array(10)].map((_, i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader className="sticky top-0 bg-gradient-to-r from-gray-50 to-white border-b-2 border-gray-200 z-10">
+        {/* Tabela (sem Tabs) */}
+        <div className="p-0 flex-1 overflow-hidden flex flex-col mt-4">
+          <div className="flex-1 overflow-y-auto">
+            {isLoading ? (
+              <div className="space-y-2 p-4">
+                {[...Array(10)].map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gradient-to-r from-gray-50 to-white border-b-2 border-gray-200 hover:bg-gray-50">
+                    <TableHead className="text-gray-900 font-bold text-xs uppercase tracking-wider py-5 px-6">
+                      Biomarcador
+                    </TableHead>
+                    <TableHead className="text-right text-gray-900 font-bold text-xs uppercase tracking-wider py-5 px-6">
+                      Valor
+                    </TableHead>
+                    <TableHead className="text-right text-gray-900 font-bold text-xs uppercase tracking-wider py-5 px-6">
+                      Referência
+                    </TableHead>
+                    <TableHead className="text-center text-gray-900 font-bold text-xs uppercase tracking-wider py-5 px-6">
+                      Status
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {groupedResults.length === 0 ? (
                     <TableRow>
-                      <TableHead className="text-gray-900 font-bold">Biomarcador</TableHead>
-                      <TableHead className="text-right text-gray-900 font-bold">Valor</TableHead>
-                      <TableHead className="text-right text-gray-900 font-bold">Referência</TableHead>
-                      <TableHead className="text-center text-gray-900 font-bold">Status</TableHead>
+                      <TableCell colSpan={4} className="text-center text-gray-500 py-8">
+                        Nenhum resultado encontrado
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {groupedResults.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center text-gray-500 py-8">
-                          Nenhum resultado encontrado
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      groupedResults.map(([category, results]) => (
-                        <>
-                          {/* Linha separadora de categoria */}
-                          <TableRow key={`category-${category}`} className="bg-blue-50 border-y-2 border-blue-200">
-                            <TableCell colSpan={4} className="py-3 px-6">
-                              <div className="flex items-center gap-2">
-                                <div className="w-1 h-6 bg-blue-500 rounded-full" />
-                                <span className="font-bold text-blue-700 uppercase tracking-wider text-sm">
-                                  {category}
+                  ) : (
+                    groupedResults.map(([category, results]) => (
+                      <>
+                        {/* Linha separadora de categoria */}
+                        <TableRow key={`category-${category}`} className="bg-blue-50 border-y-2 border-blue-200">
+                          <TableCell colSpan={4} className="py-3 px-6">
+                            <div className="flex items-center gap-2">
+                              <div className="w-1 h-6 bg-blue-500 rounded-full" />
+                              <span className="font-bold text-blue-700 uppercase tracking-wider text-sm">
+                                {category}
+                              </span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        
+                        {/* Biomarcadores da categoria (ordenados) */}
+                        {results
+                          .sort((a, b) => {
+                            const orderA = getBiomarkerOrder(category, a.biomarker_name);
+                            const orderB = getBiomarkerOrder(category, b.biomarker_name);
+                            return orderA - orderB;
+                          })
+                          .map((result) => (
+                            <TableRow key={result.id} className="border-b border-gray-100 hover:bg-gray-50">
+                              <TableCell className="font-medium text-gray-900 py-4 px-6">
+                                {result.biomarker_name}
+                              </TableCell>
+                              <TableCell className="text-right py-4 px-6">
+                                <span className="text-gray-900 font-mono">
+                                  {result.value}
                                 </span>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                          
-                          {/* Biomarcadores da categoria (ordenados) */}
-                          {results
-                            .sort((a, b) => {
-                              const orderA = getBiomarkerOrder(category, a.biomarker_name);
-                              const orderB = getBiomarkerOrder(category, b.biomarker_name);
-                              return orderA - orderB;
-                            })
-                            .map((result) => (
-                              <TableRow key={result.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                <TableCell className="font-medium text-gray-900">
-                                  {result.biomarker_name}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <span className="text-gray-900 font-mono">
-                                    {result.value}
+                                {result.unit && (
+                                  <span className="text-gray-500 ml-1 text-xs">
+                                    {result.unit}
                                   </span>
-                                  {result.unit && (
-                                    <span className="text-gray-500 ml-1 text-xs">
-                                      {result.unit}
-                                    </span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <span className={`font-mono text-sm ${
-                                    result.reference_min !== null && result.reference_max !== null
-                                      ? 'text-gray-600'
-                                      : 'text-gray-400 italic'
-                                  }`}>
-                                    {result.reference_min !== null && result.reference_max !== null
-                                      ? `${result.reference_min} - ${result.reference_max}`
-                                      : "N/A"}
-                                  </span>
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  {getStatusBadge(result.status)}
-                                </TableCell>
-                              </TableRow>
-                            ))
-                          }
-                        </>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
-
-            <div className="text-xs text-gray-600 text-center">
-              Mostrando {filteredResults.length} de {stats.total} biomarcadores
-            </div>
-          </TabsContent>
-
-          <TabsContent value="insights" className="flex-1 overflow-auto mt-4">
-            {examData?.exam && !examData.exam.health_score && (
-              <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
-                <CardContent className="py-8 text-center">
-                  <Brain className="w-16 h-16 mx-auto mb-4 text-purple-600" />
-                  <h3 className="text-xl font-semibold mb-2 text-gray-900">
-                    Insights Clínicos Não Gerados
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-6 max-w-md mx-auto">
-                    Os biomarcadores foram extraídos com sucesso. Clique abaixo para gerar uma análise clínica detalhada com IA.
-                  </p>
-                  <Button 
-                    onClick={async () => {
-                      if (examId) {
-                        const result = await analyzeExam(examId);
-                        if (result) {
-                          queryClient.invalidateQueries({ queryKey: ["exam-results", examId] });
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right py-4 px-6">
+                                <span className={`font-mono text-sm ${
+                                  result.reference_min !== null && result.reference_max !== null
+                                    ? 'text-gray-600'
+                                    : 'text-gray-400 italic'
+                                }`}>
+                                  {result.reference_min !== null && result.reference_max !== null
+                                    ? `${result.reference_min} - ${result.reference_max}`
+                                    : "N/A"}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center py-4 px-6">
+                                {getStatusBadge(result.status)}
+                              </TableCell>
+                            </TableRow>
+                          ))
                         }
-                      }
-                    }} 
-                    disabled={analyzing}
-                    className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold"
-                  >
-                    {analyzing ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Analisando...
                       </>
-                    ) : (
-                      <>
-                        <Brain className="mr-2 h-5 w-5" />
-                        Gerar Análise Clínica
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             )}
-            
-            {examData?.exam && examData.exam.health_score && (
-              <ExamInsightsPanel exam={examData.exam as unknown as ExamWithInsights} />
-            )}
-          </TabsContent>
-        </Tabs>
+          </div>
+
+          <div className="text-xs text-gray-600 text-center py-3 border-t border-gray-100">
+            Mostrando {filteredResults.length} de {stats.total} biomarcadores
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
