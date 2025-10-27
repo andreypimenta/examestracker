@@ -292,18 +292,22 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
                           })
                           .map((result) => (
                             <TableRow key={result.id} className="border-b border-gray-100 hover:bg-gray-50">
-                              <TableCell className="font-medium text-gray-900 py-4 px-6">
-                                {result.biomarker_name}
+                              <TableCell className="py-4 px-6">
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-gray-900">
+                                    {result.biomarker_name}
+                                  </span>
+                                  {result.unit && (
+                                    <span className="text-[10px] text-gray-500 font-normal">
+                                      ({result.unit})
+                                    </span>
+                                  )}
+                                </div>
                               </TableCell>
                               <TableCell className="text-right py-4 px-6">
                                 <span className="text-gray-900 font-mono">
                                   {result.value}
                                 </span>
-                                {result.unit && (
-                                  <span className="text-gray-500 ml-1 text-xs">
-                                    {result.unit}
-                                  </span>
-                                )}
                               </TableCell>
                               <TableCell className="text-right py-4 px-6">
                                 <span className={`font-mono text-sm ${
