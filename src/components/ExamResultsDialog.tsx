@@ -158,20 +158,24 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[95vw] max-w-6xl max-h-[90vh] overflow-hidden flex flex-col bg-white border border-gray-200">
-        <DialogHeader className="bg-gradient-to-br from-gray-50 via-white to-gray-50 border-b-2 border-gray-100 -mx-6 -mt-6 px-6 pt-6 pb-4">
-          <DialogTitle className="text-2xl text-gray-900 font-bold">
-            📊 Resultados do Exame
-          </DialogTitle>
-          {examData?.exam && (
-            <div className="text-sm text-gray-600 space-y-1 mt-2">
-              <p className="font-medium">
-                {examData.exam.laboratory} | {new Date(examData.exam.exam_date).toLocaleDateString("pt-BR")}
-              </p>
-              <p className="text-gray-500">
-                {stats.total} biomarcadores | {stats.normal} normais | {stats.altered} alterados
-              </p>
+        <DialogHeader className="bg-gradient-to-br from-gray-50 via-white to-gray-50 border-b-2 border-gray-100 -mx-6 -mt-6 px-8 py-6">
+          <div className="flex items-start justify-between flex-wrap gap-4">
+            <div>
+              <DialogTitle className="text-3xl font-bold text-gray-900 mb-2">
+                Resultados do Exame
+              </DialogTitle>
+              {examData?.exam && (
+                <div className="text-gray-600 text-base space-y-1">
+                  <p className="font-medium">
+                    {examData.exam.laboratory} | {new Date(examData.exam.exam_date).toLocaleDateString("pt-BR")}
+                  </p>
+                  <p className="text-gray-500 text-sm">
+                    {stats.total} biomarcadores | {stats.normal} normais | {stats.altered} alterados
+                  </p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </DialogHeader>
 
         <Tabs defaultValue="results" className="flex-1 overflow-hidden flex flex-col mt-4">
