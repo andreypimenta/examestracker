@@ -190,6 +190,7 @@ export type Database = {
           alerts: Json | null
           aws_file_key: string
           aws_file_name: string
+          birth_date: string | null
           clinical_analysis: Json | null
           created_at: string | null
           exam_date: string | null
@@ -216,6 +217,7 @@ export type Database = {
           alerts?: Json | null
           aws_file_key: string
           aws_file_name: string
+          birth_date?: string | null
           clinical_analysis?: Json | null
           created_at?: string | null
           exam_date?: string | null
@@ -242,6 +244,7 @@ export type Database = {
           alerts?: Json | null
           aws_file_key?: string
           aws_file_name?: string
+          birth_date?: string | null
           clinical_analysis?: Json | null
           created_at?: string | null
           exam_date?: string | null
