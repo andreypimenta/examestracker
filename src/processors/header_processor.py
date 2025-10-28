@@ -1,15 +1,16 @@
 """
 Processamento de Header do Exame
-Extração com cache S3 + Claude Vision (somente quando necessário)
-Economia estimada: ~15% em chamadas Vision
+Extração com cache S3 + Gemini Flash Vision (mais rápido e barato)
+Economia estimada: ~97% em custos de visão comparado ao Claude
 """
 
 import re
 import io
-import base64
+import json
 import fitz  # PyMuPDF
 from typing import Dict, Any, Optional
-from src.config import CLAUDE_MODEL
+from src.config import GEMINI_API_KEY, GEMINI_VISION_MODEL, GEMINI_MAX_TOKENS, GEMINI_TEMPERATURE
+import google.generativeai as genai
 
 
 def extract_patient_identifiers_from_text(text: str) -> Dict[str, Optional[str]]:
@@ -71,18 +72,24 @@ def extract_lab_hint_from_text(text: str) -> str:
     return ''
 
 
-def extract_header_with_vision(pdf_path: str, anthropic_client) -> Dict[str, Any]:
+def extract_header_with_vision(pdf_path: str, gemini_client=None) -> Dict[str, Any]:
     """
-    Extração com Claude Vision (pago, mas preciso)
+    Extração com Gemini Flash Vision (mais barato e rápido que Claude)
     
     Args:
         pdf_path: Caminho do PDF
-        anthropic_client: Cliente Anthropic
+        gemini_client: Cliente Gemini (opcional, será criado se None)
         
     Returns:
         Dict com dados do header extraídos
     """
     try:
+        # Configurar Gemini (se ainda não foi configurado)
+        if not gemini_client:
+            if not GEMINI_API_KEY:
+                raise Exception('GEMINI_API_KEY não configurada')
+            genai.configure(api_key=GEMINI_API_KEY)
+        
         # Converter primeira página para imagem usando PyMuPDF
         doc = fitz.open(pdf_path)
         
@@ -95,73 +102,63 @@ def extract_header_with_vision(pdf_path: str, anthropic_client) -> Dict[str, Any
         img_bytes = pix.tobytes("png")
         doc.close()
         
-        # Converter para base64
-        img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+        # Preparar imagem para Gemini
+        import PIL.Image
+        image = PIL.Image.open(io.BytesIO(img_bytes))
         
-        # Prompt para Claude Vision
-        prompt = """Extraia as seguintes informações da primeira página deste laudo de exames:
+        # Prompt otimizado para Gemini
+        prompt = """Analise esta primeira página de um laudo de exames médicos e extraia:
 
-1. **Nome do Paciente**: Nome completo (mínimo 2 palavras)
-2. **Data de Nascimento**: Formato DD/MM/YYYY
-3. **Laboratório**: Nome do laboratório que emitiu o laudo
+1. **Nome do Paciente**: Nome completo do paciente (mínimo 2 palavras)
+2. **Data de Nascimento**: No formato DD/MM/YYYY
+3. **Data do Exame**: Data em que o exame foi realizado (DD/MM/YYYY)
+4. **Laboratório**: Nome do laboratório que emitiu o laudo
 
-Retorne APENAS um JSON válido no formato:
+IMPORTANTE: Retorne APENAS um objeto JSON válido, sem texto adicional:
 {
-  "nome": "Nome Completo",
+  "paciente": "Nome Completo do Paciente",
   "data_nascimento": "DD/MM/YYYY",
-  "laboratorio": "Nome do Lab"
+  "data_exame": "DD/MM/YYYY",
+  "laboratorio": "Nome do Laboratório"
 }
 
 Se não encontrar algum campo, use null."""
         
-        # Chamar Claude Vision
-        message = anthropic_client.messages.create(
-            model=CLAUDE_MODEL,
-            max_tokens=500,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": "image/png",
-                                "data": img_base64
-                            }
-                        },
-                        {
-                            "type": "text",
-                            "text": prompt
-                        }
-                    ]
-                }
-            ]
+        # Chamar Gemini Flash Vision
+        model = genai.GenerativeModel(
+            model_name=GEMINI_VISION_MODEL,
+            generation_config={
+                'temperature': GEMINI_TEMPERATURE,
+                'max_output_tokens': GEMINI_MAX_TOKENS,
+            }
         )
         
-        # Parsear resposta
-        response_text = message.content[0].text
+        response = model.generate_content([prompt, image])
+        response_text = response.text.strip()
         
-        # Extrair JSON da resposta
-        import json
+        # Remover markdown se presente
+        if response_text.startswith('```'):
+            response_text = re.sub(r'^```json\s*|\s*```$', '', response_text, flags=re.MULTILINE)
+        
         json_match = re.search(r'\{[^}]+\}', response_text, re.DOTALL)
         if json_match:
             header_data = json.loads(json_match.group(0))
-            print(f'✅ Claude Vision: Header extraído')
+            print(f'✅ Gemini Flash Vision: Header extraído')
             return header_data
         else:
-            print('⚠️ Claude Vision: Resposta sem JSON válido')
+            print('⚠️ Gemini Flash Vision: Resposta sem JSON válido')
+            print(f'Resposta recebida: {response_text[:200]}')
             return {}
         
     except Exception as e:
-        print(f'❌ Claude Vision falhou: {e}')
+        print(f'❌ Gemini Flash Vision falhou: {e}')
         return {}
 
 
 def extract_header_with_cache(
     pdf_path: str,
     extracted_text: str,
-    anthropic_client,
+    vision_client,
     cache
 ) -> Dict[str, Any]:
     """
@@ -170,7 +167,7 @@ def extract_header_with_cache(
     Args:
         pdf_path: Caminho do PDF
         extracted_text: Texto já extraído
-        anthropic_client: Cliente Anthropic
+        vision_client: Cliente de visão (Gemini ou Claude)
         cache: Instância de HeaderCacheS3
         
     Returns:
@@ -189,12 +186,16 @@ def extract_header_with_cache(
         if cached_header:
             return cached_header
     
-    # Passo 3: Usar Claude Vision (cache miss)
-    print('🔍 Cache miss, usando Claude Vision...')
-    header = extract_header_with_vision(pdf_path, anthropic_client)
+    # Passo 3: Usar Gemini Flash Vision (cache miss)
+    print('🔍 Cache miss, usando Gemini Flash Vision...')
+    header = extract_header_with_vision(pdf_path, vision_client)
     
     # Passo 4: Salvar no cache (se válido)
-    if header.get('nome') and header.get('data_nascimento'):
-        cache.put(header['nome'], header['data_nascimento'], header)
+    # Suporta tanto 'nome' quanto 'paciente' no retorno
+    patient_name = header.get('paciente') or header.get('nome')
+    birth_date = header.get('data_nascimento')
+    
+    if patient_name and birth_date:
+        cache.put(patient_name, birth_date, header)
     
     return header

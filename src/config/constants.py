@@ -31,9 +31,18 @@ CLAUDE_HAIKU_MODEL = 'claude-3-5-haiku-20241022'
 CLAUDE_VISION_MODEL = 'claude-sonnet-4-20250514'
 
 # Configuração de chamadas Claude
-CLAUDE_MODEL = 'claude-3-5-sonnet-20241022'
+CLAUDE_MODEL = 'claude-sonnet-4-5'
 CLAUDE_MAX_TOKENS = 4096
 CLAUDE_TEMPERATURE = 0.3
+
+# ========================================
+# GOOGLE GEMINI API
+# ========================================
+
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+GEMINI_VISION_MODEL = 'gemini-2.0-flash-exp'
+GEMINI_MAX_TOKENS = 500
+GEMINI_TEMPERATURE = 0.2
 
 # ========================================
 # SUPABASE WEBHOOK

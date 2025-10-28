@@ -12,6 +12,7 @@ from decimal import Decimal
 from pathlib import Path
 from anthropic import Anthropic
 from urllib.parse import unquote_plus
+import google.generativeai as genai
 
 # Imports do sistema modular
 from src.config import *
@@ -52,6 +53,15 @@ s3_client = boto3.client('s3')
 textract_client = boto3.client('textract')
 dynamodb = boto3.resource('dynamodb')
 anthropic_client = Anthropic(api_key=os.environ['ANTHROPIC_API_KEY'])
+
+# Configurar Gemini para extração de headers
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    gemini_client = genai
+    logger.info("✅ Gemini Flash configurado para extração de headers")
+else:
+    gemini_client = None
+    logger.warning("⚠️ GEMINI_API_KEY não configurada - headers usarão fallback")
 
 table = dynamodb.Table(os.environ.get('DYNAMODB_TABLE', 'exames-resultados'))
 corrections_table = dynamodb.Table(os.environ.get('CORRECTIONS_TABLE', 'exames-training-corrections'))
@@ -176,14 +186,15 @@ def process_exam_main(event: dict) -> dict:
         )
         logger.info(f"✅ Text extracted using: {method}")
         
-        # 6. Extract header with cache
+        # 6. Extract header with cache (usando Gemini Flash)
         header_data = extract_header_with_cache(
             pdf_path, 
             extracted_text, 
-            anthropic_client, 
+            gemini_client, 
             header_cache
         )
-        logger.info(f"✅ Header extracted: {header_data.get('paciente', 'N/A')}")
+        patient_name = header_data.get('paciente') or header_data.get('nome', 'N/A')
+        logger.info(f"✅ Header extracted: {patient_name}")
         
         # 7. Parse biomarkers (Claude Haiku)
         raw_biomarkers = parse_exams_from_text(extracted_text, anthropic_client)
