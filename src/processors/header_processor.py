@@ -23,6 +23,11 @@ def extract_patient_identifiers_from_text(text: str) -> Dict[str, Optional[str]]
     Returns:
         Dict com nome e data_nascimento (ou None)
     """
+    # ✅ PROTEÇÃO: Validar entrada
+    if not text or not isinstance(text, str):
+        print("⚠️ extract_patient_identifiers_from_text recebeu texto inválido")
+        return {'nome': None, 'data_nascimento': None}
+    
     identifiers = {
         'nome': None,
         'data_nascimento': None

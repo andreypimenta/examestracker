@@ -6,7 +6,13 @@ Exporta funções de processamento de texto, headers, exames e imagens
 from .text_extractor import (
     extract_text_with_pypdf2,
     extract_text_with_textract,
-    extract_text_hybrid
+    extract_text_from_docx,
+    extract_text_hybrid,
+    extract_text_universal
+)
+
+from .vision_text_extractor import (
+    extract_text_from_image_with_vision
 )
 
 from .header_processor import (
@@ -34,7 +40,10 @@ __all__ = [
     # Text extraction
     'extract_text_with_pypdf2',
     'extract_text_with_textract',
+    'extract_text_from_docx',
     'extract_text_hybrid',
+    'extract_text_universal',
+    'extract_text_from_image_with_vision',
     
     # Header processing
     'extract_patient_identifiers_from_text',

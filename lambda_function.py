@@ -28,7 +28,8 @@ from src.utils import (
     BiomarkerNormalizationService
 )
 from src.processors import (
-    extract_text_hybrid,
+    extract_text_universal,
+    extract_text_from_image_with_vision,
     extract_header_with_cache,
     parse_exams_from_text,
     clean_reference_values,
@@ -212,6 +213,10 @@ def process_exam_main(event: dict) -> dict:
         pdf_path = download_from_s3(s3_client, os.environ.get('S3_BUCKET_NAME'), s3_key)
         filename = s3_key.split('/')[-1]
         
+        # Log informações do arquivo
+        file_size = os.path.getsize(pdf_path)
+        logger.info(f"📥 Arquivo baixado: {filename} ({file_size} bytes)")
+        
         # 3. Process HEIC images (convert to JPEG)
         if filename.lower().endswith(('.heic', '.heif')):
             logger.info(f"🔄 Converting HEIC image to JPEG: {filename}")
@@ -251,14 +256,35 @@ def process_exam_main(event: dict) -> dict:
             except Exception as e:
                 logger.warning(f"⚠️ Image optimization failed: {e} - continuing with original")
         
-        # 5. Extract text (hybrid PyPDF2 → Textract)
-        extracted_text, method = extract_text_hybrid(
+        # 5. Extract text (universal: suporta PDF, Word, imagens)
+        extracted_text, method = extract_text_universal(
             pdf_path, 
             textract_client, 
             os.environ.get('S3_BUCKET_NAME'), 
             s3_key
         )
         logger.info(f"✅ Text extracted using: {method}")
+        
+        # ✅ VALIDAÇÃO: Se extração falhou, tentar Vision API em imagens
+        if not extracted_text or method == 'none':
+            logger.warning(f"⚠️ Extração primária falhou - tentando fallbacks...")
+            
+            # Se for imagem, tentar Vision API
+            if is_image_supported(filename):
+                logger.info(f"🖼️ Tentando extrair texto de imagem via Vision API...")
+                extracted_text = extract_text_from_image_with_vision(pdf_path, gemini_client)
+                if extracted_text:
+                    method = 'gemini-vision'
+                    logger.info(f"✅ Vision API: {len(extracted_text)} caracteres extraídos")
+            
+            # Se ainda não tem texto, falhar
+            if not extracted_text:
+                supported_formats = ['PDF', 'DOCX', 'DOC', 'JPG', 'PNG', 'HEIC']
+                raise ValueError(
+                    f"Não foi possível extrair texto do arquivo '{filename}'. "
+                    f"Formatos suportados: {', '.join(supported_formats)}. "
+                    f"Método tentado: {method}"
+                )
         
         # 6. Extract header with cache (usando Gemini Flash)
         header_data = extract_header_with_cache(
@@ -356,13 +382,33 @@ def process_exam_main(event: dict) -> dict:
         import traceback
         logger.error(traceback.format_exc())
         
+        # Enviar webhook de erro com detalhes
+        error_details = {
+            'error_type': type(e).__name__,
+            'error_message': str(e),
+            'extraction_method': method if 'method' in locals() else 'unknown',
+            'file_name': filename if 'filename' in locals() else 'unknown'
+        }
+        
+        if 'exam_id' in locals() and 's3_key' in locals():
+            send_webhook_to_supabase(
+                exam_id, 
+                s3_key, 
+                'failed',
+                {'error': error_details}
+            )
+        
         if pdf_path:
             cleanup_temp_files([pdf_path])
         
         return {
             'statusCode': 500,
             'headers': {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'},
-            'body': json.dumps({'success': False, 'error': str(e)})
+            'body': json.dumps({
+                'success': False, 
+                'error': str(e),
+                'details': error_details
+            })
         }
 
 # ========================================
