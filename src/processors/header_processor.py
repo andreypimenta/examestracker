@@ -11,6 +11,8 @@ import fitz  # PyMuPDF
 from typing import Dict, Any, Optional
 from src.config import GEMINI_API_KEY, GEMINI_VISION_MODEL, GEMINI_MAX_TOKENS, GEMINI_TEMPERATURE
 import google.generativeai as genai
+from PIL import Image
+from src.processors.vision_text_extractor import _compress_image_for_vision
 
 
 def extract_patient_identifiers_from_text(text: str) -> Dict[str, Optional[str]]:
@@ -101,11 +103,18 @@ def extract_header_with_vision(pdf_path: str, gemini_client=None) -> Dict[str, A
         if len(doc) == 0:
             raise Exception('PDF não possui páginas')
         
-        # Renderizar primeira página em alta resolução
+        # Renderizar primeira página em resolução otimizada
         page = doc[0]
-        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # 2x zoom para melhor qualidade
-        img_bytes = pix.tobytes("png")
+        pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5))  # 1.5x = suficiente para header
+        img_bytes = pix.tobytes("jpeg")  # JPEG ao invés de PNG
         doc.close()
+        
+        # ✅ NOVO: Comprimir imagem antes de enviar ao Gemini
+        print(f"🗜️ Comprimindo imagem do header...")
+        original_size = len(img_bytes)
+        img_bytes = _compress_image_for_vision(img_bytes, max_dimension=1024, quality=85)
+        compressed_size = len(img_bytes)
+        print(f"🗜️ Header comprimido: {original_size/1024:.1f}KB → {compressed_size/1024:.1f}KB ({100*(1-compressed_size/original_size):.0f}% menor)")
         
         # Preparar imagem para Gemini
         import PIL.Image
