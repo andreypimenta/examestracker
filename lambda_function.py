@@ -203,25 +203,51 @@ def process_exam_main(event: dict) -> dict:
         final = assign_biomarker_ids(deduped)
         logger.info(f"✅ Parsed {len(final)} biomarkers")
         
-        # 8. Normalize biomarkers
+        # 8. Normalize biomarkers (CORRIGIDO)
         try:
-            result = normalization_service.validate_and_normalize(final)
-            normalized = [m.dict() for m in result.matched_biomarkers]
-            rejected = [r.dict() for r in result.rejected_biomarkers]
+            # Construir payload no formato correto
+            payload = {
+                'biomarcadores': [
+                    {
+                        'nome': b.get('exam_name', ''),
+                        'valor': b.get('value'),
+                        'unidade': b.get('unit'),
+                        'referencia': f"{b.get('reference_min', '')}-{b.get('reference_max', '')}" if b.get('reference_min') or b.get('reference_max') else None
+                    }
+                    for b in final
+                ],
+                'data_exame': header_data.get('data_exame')
+            }
+            
+            # Chamar método correto - retorna ValidationResult (dataclass)
+            result = normalization_service.validate_payload(payload)
+            
+            # Acessar atributos (não subscript) - CORRIGIDO
+            normalized = result.processed_biomarkers
+            rejected = result.rejected_biomarkers
+            
+            logger.info(f"✅ Normalized: {len(normalized)} matched, {len(rejected)} rejected")
+            
         except Exception as e:
             logger.error(f"❌ Normalization failed: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             normalized = final
             rejected = []
         
-        # 9. Save to DynamoDB
+        # 9. Save to DynamoDB (CORRIGIDO)
         exam_result = {
+            'PK': exam_id,                      # ← Chave primária
+            'SK': 'EXAM',                       # ← Sort key (ajustar se necessário)
             'exam_id': exam_id,
             's3_key': s3_key,
-            'extracted_text': extracted_text,
+            'extracted_text': extracted_text[:5000],  # Limitar para não exceder limite DynamoDB
             'header': header_data,
             'biomarkers': normalized,
             'rejected_biomarkers': rejected,
-            'stats': calculate_exam_stats(normalized)
+            'stats': calculate_exam_stats(normalized),
+            'timestamp': header_data.get('data_exame', ''),
+            'patient_name': header_data.get('paciente', 'N/A')
         }
         
         table.put_item(Item=convert_floats_to_decimal(exam_result))
@@ -229,6 +255,7 @@ def process_exam_main(event: dict) -> dict:
         
         # 10. Webhook to Supabase
         send_webhook_to_supabase(exam_id, s3_key, 'success', exam_result)
+        logger.info(f"✅ Webhook sent to Supabase")
         
         # 11. Cleanup
         if pdf_path:
@@ -242,8 +269,12 @@ def process_exam_main(event: dict) -> dict:
         
     except Exception as e:
         logger.error(f"❌ Processing error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        
         if pdf_path:
             cleanup_temp_files([pdf_path])
+        
         return {
             'statusCode': 500,
             'headers': {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'},
@@ -275,6 +306,9 @@ def lambda_handler(event, context):
             
     except Exception as e:
         logger.error(f"❌ Handler error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        
         return {
             'statusCode': 500,
             'headers': {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'},
