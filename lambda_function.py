@@ -282,40 +282,63 @@ def process_exam_main(event: dict) -> dict:
                     method = 'gemini-vision'
                     logger.info(f"✅ Vision API: {len(extracted_text)} caracteres extraídos")
             
-            # Fallback 2: Se for PDF, converter para imagem e tentar Vision API
+            # Fallback 2: Se for PDF, converter TODAS as páginas para imagem e tentar Vision API
             elif file_ext == 'pdf' and gemini_client:
-                logger.info(f"📄 Convertendo PDF para imagem e tentando Vision API...")
+                logger.info(f"📄 Convertendo PDF para imagens e tentando Vision API...")
                 try:
                     import fitz  # PyMuPDF
                     
-                    # Abrir PDF
                     doc = fitz.open(pdf_path)
+                    total_pages = len(doc)
                     
-                    if len(doc) > 0:
-                        # Converter primeira página para imagem (2x resolution para melhor OCR)
-                        page = doc[0]
-                        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                    if total_pages > 0:
+                        logger.info(f'📄 PDF tem {total_pages} páginas - processando todas...')
                         
-                        # Salvar como PNG temporariamente
-                        image_path = pdf_path.replace('.pdf', '_page1.png')
-                        pix.save(image_path)
-                        temp_files.append(image_path)
+                        all_extracted_text = []
+                        
+                        # Iterar sobre TODAS as páginas
+                        for page_num in range(total_pages):
+                            logger.info(f'📄 Processando página {page_num + 1}/{total_pages}...')
+                            
+                            try:
+                                # Converter página para imagem (1.5x resolution = balanço perfeito OCR/tamanho)
+                                page = doc[page_num]
+                                pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5))
+                                
+                                # Salvar como JPEG com compressão
+                                image_path = pdf_path.replace('.pdf', f'_page{page_num + 1}.jpg')
+                                pix.save(image_path, 'JPEG', quality=90)
+                                temp_files.append(image_path)
+                                
+                                logger.info(f'✅ Página {page_num + 1} convertida: {image_path}')
+                                
+                                # Extrair texto com Vision API (já comprime internamente)
+                                page_text = extract_text_from_image_with_vision(image_path, gemini_client)
+                                
+                                if page_text:
+                                    all_extracted_text.append(page_text)
+                                    logger.info(f'✅ Página {page_num + 1}: {len(page_text)} caracteres extraídos')
+                                else:
+                                    logger.warning(f'⚠️ Página {page_num + 1}: nenhum texto extraído')
+                            
+                            except Exception as page_error:
+                                logger.error(f'❌ Erro na página {page_num + 1}: {page_error}')
+                                continue
                         
                         doc.close()
                         
-                        logger.info(f'✅ PDF convertido para imagem: {image_path}')
-                        
-                        # Tentar extrair texto com Vision API
-                        extracted_text = extract_text_from_image_with_vision(image_path, gemini_client)
-                        
-                        if extracted_text:
-                            method = 'gemini-vision-from-pdf'
-                            logger.info(f'✅ Vision API extraiu {len(extracted_text)} caracteres do PDF convertido')
+                        # Juntar texto de todas as páginas
+                        if all_extracted_text:
+                            extracted_text = '\n\n=== NOVA PÁGINA ===\n\n'.join(all_extracted_text)
+                            method = 'gemini-vision-from-pdf-multipage'
+                            logger.info(f'✅ Vision API extraiu {len(extracted_text)} caracteres de {len(all_extracted_text)} páginas')
+                        else:
+                            logger.error('❌ Nenhuma página teve texto extraído com sucesso')
                     else:
                         logger.error('❌ PDF não tem páginas')
                     
                 except Exception as e:
-                    logger.error(f'❌ Falha ao converter PDF para imagem: {e}')
+                    logger.error(f'❌ Falha ao converter PDF para imagens: {e}')
                     import traceback
                     logger.error(traceback.format_exc())
             
