@@ -11,6 +11,7 @@ import logging
 from decimal import Decimal
 from pathlib import Path
 from anthropic import Anthropic
+from urllib.parse import unquote_plus
 
 # Imports do sistema modular
 from src.config import *
@@ -114,7 +115,7 @@ def process_exam_main(event: dict) -> dict:
     try:
         # 1. Parse event (S3 trigger ou API Gateway)
         if 'Records' in event:
-            s3_key = event['Records'][0]['s3']['object']['key']
+            s3_key = unquote_plus(event['Records'][0]['s3']['object']['key'])
             exam_id = s3_key.split('/')[-1].split('.')[0]
         else:
             body = json.loads(event.get('body', '{}'))
