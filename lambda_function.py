@@ -242,20 +242,25 @@ def process_exam_main(event: dict) -> dict:
                 logger.error(f"❌ HEIC conversion failed: {e}")
                 # Continue with original file if conversion fails
         
-        # 4. Process other image files with optimization
+        # 4. Process other image files with optimization (já no formato ideal para Vision)
         elif is_image_supported(filename):
             logger.info(f"🖼️ Processing image file: {filename}")
             try:
                 with open(pdf_path, 'rb') as f:
                     image_data = f.read()
                 
-                optimized_data, quality_info = ImageProcessor.process_image(image_data, filename)
+                # Otimizar para Vision (1536px, quality=85) - formato ideal para OCR
+                optimized_data, quality_info = ImageProcessor.process_image(
+                    image_data, 
+                    filename, 
+                    optimize_for='vision'
+                )
                 
                 # Save optimized image
                 with open(pdf_path, 'wb') as f:
                     f.write(optimized_data)
                 
-                logger.info(f"✅ Image optimized - Quality: {quality_info['quality']} ({quality_info['score']}/100)")
+                logger.info(f"✅ Image optimized for Vision - Quality: {quality_info['quality']} ({quality_info['score']}/100)")
             except Exception as e:
                 logger.warning(f"⚠️ Image optimization failed: {e} - continuing with original")
         
@@ -269,15 +274,16 @@ def process_exam_main(event: dict) -> dict:
         logger.info(f"✅ Text extracted using: {method}")
         
         # 6. FALLBACK PARA VISION API
-        if not extracted_text or method == 'none':
-            logger.warning(f"⚠️ Extração primária falhou - tentando fallbacks...")
+        if not extracted_text or method in ['none', 'image_needs_vision']:
+            logger.warning(f"⚠️ Extração primária falhou ou requer Vision - tentando fallbacks...")
             
             file_ext = filename.lower().split('.')[-1]
             
-            # Fallback 1: Se for imagem, tentar Vision API direto
+            # Fallback 1: Se for imagem, tentar Vision API direto (sem compressão, já foi otimizada)
             if is_image_supported(filename):
-                logger.info(f"🖼️ Tentando extrair texto de imagem via Vision API...")
-                extracted_text = extract_text_from_image_with_vision(pdf_path, gemini_client)
+                logger.info(f"🖼️ Extraindo texto de imagem via Vision API...")
+                # compress=False porque ImageProcessor já otimizou para 1536px, quality=85
+                extracted_text = extract_text_from_image_with_vision(pdf_path, gemini_client, compress=False)
                 if extracted_text:
                     method = 'gemini-vision'
                     logger.info(f"✅ Vision API: {len(extracted_text)} caracteres extraídos")

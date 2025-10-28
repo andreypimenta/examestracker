@@ -9,14 +9,14 @@ from PIL import Image
 import io
 
 
-def extract_text_from_image_with_vision(image_path: str, gemini_client, compress: bool = True) -> Optional[str]:
+def extract_text_from_image_with_vision(image_path: str, gemini_client, compress: bool = False) -> Optional[str]:
     """
     Extrai texto de uma imagem usando Gemini Flash Vision
     
     Args:
         image_path: Caminho da imagem
         gemini_client: Cliente Gemini configurado
-        compress: Se True, comprime imagem antes de enviar (padrão: True)
+        compress: Se True, comprime imagem antes de enviar (padrão: False pois ImageProcessor já comprimiu)
         
     Returns:
         Texto extraído ou None se falhar
@@ -26,13 +26,17 @@ def extract_text_from_image_with_vision(image_path: str, gemini_client, compress
         return None
     
     try:
-        # Ler imagem
+        # Ler imagem (já otimizada pelo ImageProcessor)
         with open(image_path, 'rb') as f:
             image_data = f.read()
         
-        # Comprimir imagem antes de enviar
+        original_size = len(image_data)
+        print(f"📸 Enviando imagem para Vision API: {original_size/1024:.1f}KB")
+        
+        # ⚠️ Compressão adicional APENAS se solicitado explicitamente
+        # (ImageProcessor já otimizou para 1536px, quality=85)
         if compress:
-            original_size = len(image_data)
+            print("⚠️ Aplicando compressão adicional (normalmente desnecessário)...")
             image_data = _compress_image_for_vision(image_data)
             compressed_size = len(image_data)
             print(f"🗜️ Imagem comprimida: {original_size/1024:.1f}KB → {compressed_size/1024:.1f}KB ({100*(1-compressed_size/original_size):.0f}% menor)")

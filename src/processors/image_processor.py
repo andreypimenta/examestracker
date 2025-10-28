@@ -12,8 +12,9 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Configurações de otimização
-MAX_DIMENSION = 4096  # Textract limit
-JPEG_QUALITY = 95
+MAX_DIMENSION_TEXTRACT = 4096  # Textract limit
+MAX_DIMENSION_VISION = 1536  # Vision API optimal (melhor custo/qualidade)
+JPEG_QUALITY = 85  # Ideal para OCR (Vision + Textract)
 TARGET_DPI = 300
 
 
@@ -47,13 +48,14 @@ class ImageProcessor:
             return None
 
     @staticmethod
-    def process_image(image_data, filename):
+    def process_image(image_data, filename, optimize_for='vision'):
         """
         Processa e otimiza imagem para melhor OCR
         
         Args:
             image_data: bytes da imagem
             filename: nome do arquivo para detectar formato
+            optimize_for: 'vision' (1536px, quality=85) ou 'textract' (4096px, quality=85)
             
         Returns:
             tuple: (optimized_bytes, quality_info)
@@ -75,15 +77,17 @@ class ImageProcessor:
             # Coletar info de qualidade antes das otimizações
             quality_info = ImageProcessor._analyze_quality(img)
             
-            # Aplicar otimizações
-            img = ImageProcessor._apply_optimizations(img)
+            # Aplicar otimizações com target correto
+            max_dim = MAX_DIMENSION_VISION if optimize_for == 'vision' else MAX_DIMENSION_TEXTRACT
+            img = ImageProcessor._apply_optimizations(img, max_dimension=max_dim)
             
             # Converter para bytes otimizados
             output = io.BytesIO()
             img.save(output, format='JPEG', quality=JPEG_QUALITY, optimize=True)
             optimized_bytes = output.getvalue()
             
-            logger.info(f"✅ Image optimized: {len(image_data)} -> {len(optimized_bytes)} bytes")
+            logger.info(f"✅ Image optimized for {optimize_for}: {len(image_data)} -> {len(optimized_bytes)} bytes")
+            logger.info(f"📐 Max dimension: {max_dim}px, Quality: {JPEG_QUALITY}")
             logger.info(f"📊 Quality score: {quality_info['score']}/100")
             
             return optimized_bytes, quality_info
@@ -94,7 +98,7 @@ class ImageProcessor:
             return image_data, {'score': 0, 'issues': ['processing_failed']}
 
     @staticmethod
-    def _apply_optimizations(img):
+    def _apply_optimizations(img, max_dimension=MAX_DIMENSION_VISION):
         """Aplica otimizações na imagem"""
         try:
             # 1. Auto-rotation baseado em EXIF
@@ -115,8 +119,8 @@ class ImageProcessor:
             
             # 2. Resize se necessário (manter proporção)
             width, height = img.size
-            if width > MAX_DIMENSION or height > MAX_DIMENSION:
-                ratio = min(MAX_DIMENSION/width, MAX_DIMENSION/height)
+            if width > max_dimension or height > max_dimension:
+                ratio = min(max_dimension/width, max_dimension/height)
                 new_size = (int(width * ratio), int(height * ratio))
                 img = img.resize(new_size, Image.Resampling.LANCZOS)
                 logger.info(f"📐 Resized: {width}x{height} -> {new_size[0]}x{new_size[1]}")
@@ -258,10 +262,10 @@ class ImageProcessor:
 
 
 # Funções auxiliares para uso direto
-def process_image_file(image_bytes, filename):
+def process_image_file(image_bytes, filename, optimize_for='vision'):
     """Helper function para processar arquivo de imagem"""
     processor = ImageProcessor()
-    return processor.process_image(image_bytes, filename)
+    return processor.process_image(image_bytes, filename, optimize_for=optimize_for)
 
 
 def is_image_supported(filename):

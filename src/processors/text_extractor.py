@@ -166,7 +166,7 @@ def extract_text_hybrid(pdf_path: str, textract_client, s3_bucket: str, s3_key: 
 def extract_text_universal(file_path: str, textract_client, s3_bucket: str, s3_key: str) -> Tuple[Optional[str], str]:
     """
     Extração universal que detecta o tipo de arquivo e usa o método apropriado
-    Suporta: PDF, Word (.docx, .doc), e fallback para Textract
+    Suporta: PDF, Word (.docx, .doc), imagens (JPG, PNG, HEIC, etc.)
     
     Args:
         file_path: Caminho local do arquivo
@@ -187,7 +187,15 @@ def extract_text_universal(file_path: str, textract_client, s3_bucket: str, s3_k
             mime_map = {
                 'pdf': 'application/pdf',
                 'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'doc': 'application/msword'
+                'doc': 'application/msword',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'heic': 'image/heic',
+                'heif': 'image/heif',
+                'tiff': 'image/tiff',
+                'tif': 'image/tiff',
+                'webp': 'image/webp'
             }
             mime_type = mime_map.get(ext, 'application/octet-stream')
         
@@ -218,6 +226,25 @@ def extract_text_universal(file_path: str, textract_client, s3_bucket: str, s3_k
                 text = extract_text_with_textract(textract_client, s3_bucket, s3_key)
                 if text:
                     return text, 'textract'
+        
+        # 🆕 IMAGENS: Textract primeiro (mais barato para imagens simples)
+        elif mime_type and mime_type.startswith('image/'):
+            print(f'🖼️ Imagem detectada: {mime_type}')
+            
+            # Tentativa 1: Textract (mais barato para imagens simples)
+            if ENABLE_TEXTRACT:
+                print('📸 Tentando Textract para imagem...')
+                text = extract_text_with_textract(textract_client, s3_bucket, s3_key)
+                if text and len(text) >= MIN_EXTRACTED_TEXT_LENGTH:
+                    print(f'✅ Textract extraiu {len(text)} caracteres da imagem')
+                    return text, 'textract'
+                else:
+                    print('⚠️ Textract retornou texto insuficiente - fallback para Vision')
+            
+            # Tentativa 2: Vision API (mais preciso, mas mais caro)
+            # Será tratado no fallback do lambda_function.py
+            print('📸 Imagem será processada com Vision API (fallback)')
+            return None, 'image_needs_vision'
         
         # Formato não suportado
         print(f'❌ Formato não suportado: {mime_type}')
