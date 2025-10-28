@@ -248,6 +248,8 @@ def process_exam_main(event: dict) -> dict:
         if 'Records' in event:
             s3_key = unquote_plus(event['Records'][0]['s3']['object']['key'])
             filename = s3_key.split('/')[-1]
+            logger.info(f'📂 S3 Key: {s3_key}')
+            logger.info(f'📄 Filename extraído: {filename}')
             # ✅ Buscar UUID real do exame no Supabase
             exam_id = get_exam_uuid_from_supabase(filename)
         else:

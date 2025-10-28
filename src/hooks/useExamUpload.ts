@@ -158,7 +158,6 @@ export function useExamUpload() {
           uploaded_by: user.id,
           aws_file_key: s3Key,
           aws_file_name: finalFileName,
-          filename: finalFileName,
           exam_date: examDate?.toISOString().split("T")[0],
           processing_status: "uploading",
         })
