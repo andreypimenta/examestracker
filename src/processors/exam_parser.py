@@ -27,36 +27,38 @@ def parse_exams_from_text(extracted_text: str, anthropic_client) -> List[Dict[st
     Returns:
         Lista de exames estruturados
     """
+    # Limitar texto para otimizar custos (4000 chars = ~1000 tokens)
+    text_sample = extracted_text[:4000]
+    
     prompt = f"""Analise este laudo de exames e extraia TODOS os resultados no formato JSON.
 
 **REGRAS CRÍTICAS:**
-1. **Valores numéricos**: Sempre use ponto decimal (não vírgula). Ex: 12.5 não 12,5
-2. **Valores de referência**: Extraia min e max quando disponíveis
-3. **Unidades**: Mantenha exatamente como aparecem no laudo
-4. **Status**: "normal", "alto", "baixo" baseado nos valores de referência
-5. **Hemograma**: Se houver "Hemograma", extraia TODOS os componentes individuais (hemácias, leucócitos, plaquetas, etc.)
-6. **Lipidograma**: Se houver "Lipidograma", extraia TODOS os componentes (colesterol total, HDL, LDL, triglicerídeos)
+1. Retorne APENAS o array JSON - nenhum texto antes ou depois
+2. Use aspas duplas em todas as strings (ex: "95" não 95)
+3. Valores numéricos como strings (ex: "95" não 95)
+4. Se não houver exames, retorne []
+5. Sempre inclua exam_name, value e unit (mínimo obrigatório)
+6. **Hemograma**: Se houver "Hemograma", extraia TODOS os componentes individuais (hemácias, leucócitos, plaquetas, etc.)
+7. **Lipidograma**: Se houver "Lipidograma", extraia TODOS os componentes (colesterol total, HDL, LDL, triglicerídeos)
 
 **FORMATO DE SAÍDA (JSON):**
-```json
 [
   {{
     "exam_name": "Nome do Exame",
-    "value": 12.5,
+    "value": "12.5",
     "unit": "mg/dL",
-    "reference_min": 10.0,
-    "reference_max": 50.0,
+    "reference_min": "10.0",
+    "reference_max": "50.0",
     "status": "normal",
     "method": "Método usado (opcional)",
     "observation": "Observação (opcional)"
   }}
 ]
-```
 
-**TEXTO DO LAUDO:**
-{extracted_text}
+**LAUDO:**
+{text_sample}
 
-Retorne APENAS o array JSON, sem texto adicional."""
+**RESPOSTA (somente JSON):"""
     
     try:
         message = anthropic_client.messages.create(
