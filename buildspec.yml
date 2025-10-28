@@ -1,0 +1,76 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "🔐 Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      
+      - echo "📋 Verificando repositórios ECR..."
+      - |
+        aws ecr describe-repositories --repository-names exames-app --region $AWS_DEFAULT_REGION 2>/dev/null || \
+        aws ecr create-repository --repository-name exames-app --region $AWS_DEFAULT_REGION
+      - |
+        aws ecr describe-repositories --repository-names get-exam-url --region $AWS_DEFAULT_REGION 2>/dev/null || \
+        aws ecr create-repository --repository-name get-exam-url --region $AWS_DEFAULT_REGION
+      
+      - echo "🏷️ Setting up image tags..."
+      - REPOSITORY_URI_PROCESS=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/exames-app
+      - REPOSITORY_URI_GETURL=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/get-exam-url
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+      - echo "Image tag will be $IMAGE_TAG"
+      
+  build:
+    commands:
+      - echo "🐳 Build started on `date`"
+      
+      - echo "📦 Building process-exam Lambda (main Dockerfile)..."
+      - DOCKER_BUILDKIT=0 docker build --platform linux/amd64 -t exames-app:latest -f Dockerfile .
+      - echo "✅ process-exam image built successfully"
+      
+      - echo "🏷️ Tagging process-exam image..."
+      - docker tag exames-app:latest $REPOSITORY_URI_PROCESS:latest
+      - docker tag exames-app:latest $REPOSITORY_URI_PROCESS:$IMAGE_TAG
+      - echo "✅ process-exam image tagged"
+      
+      - echo "📦 Building get-exam-url Lambda (docker-lambda folder)..."
+      - cd docker-lambda
+      - DOCKER_BUILDKIT=0 docker build --platform linux/amd64 -t get-exam-url:latest -f Dockerfile .
+      - echo "✅ get-exam-url image built successfully"
+      
+      - echo "🏷️ Tagging get-exam-url image..."
+      - docker tag get-exam-url:latest $REPOSITORY_URI_GETURL:latest
+      - docker tag get-exam-url:latest $REPOSITORY_URI_GETURL:$IMAGE_TAG
+      - echo "✅ get-exam-url image tagged"
+      - cd ..
+      
+  post_build:
+    commands:
+      - echo "📤 Pushing Docker images to ECR..."
+      
+      - echo "Pushing process-exam:latest..."
+      - docker push $REPOSITORY_URI_PROCESS:latest
+      - echo "Pushing process-exam:$IMAGE_TAG..."
+      - docker push $REPOSITORY_URI_PROCESS:$IMAGE_TAG
+      
+      - echo "Pushing get-exam-url:latest..."
+      - docker push $REPOSITORY_URI_GETURL:latest
+      - echo "Pushing get-exam-url:$IMAGE_TAG..."
+      - docker push $REPOSITORY_URI_GETURL:$IMAGE_TAG
+      
+      - echo "✅ All images pushed successfully"
+      
+      - echo "⚡ Updating Lambda functions..."
+      - aws lambda update-function-code --function-name process-exam --image-uri $REPOSITORY_URI_PROCESS:latest --region $AWS_DEFAULT_REGION
+      - aws lambda update-function-code --function-name get-exam-url --image-uri $REPOSITORY_URI_GETURL:latest --region $AWS_DEFAULT_REGION
+      
+      - echo "⏳ Waiting for Lambda functions to update..."
+      - aws lambda wait function-updated --function-name process-exam --region $AWS_DEFAULT_REGION
+      - aws lambda wait function-updated --function-name get-exam-url --region $AWS_DEFAULT_REGION
+      
+      - echo "✅ Deploy completed successfully on `date`"
+
+artifacts:
+  files:
+    - '**/*'
