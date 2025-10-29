@@ -247,41 +247,42 @@ export function useExamUpload() {
     examId: string,
     onStatusUpdate?: (message: string, progress: number) => void
   ) => {
-    const maxAttempts = 60; // 60 tentativas x 3 segundos = 180 segundos (3 minutos)
+    const maxAttempts = 60;
     let attempts = 0;
     const startTime = Date.now();
-    let lastProgressToast = 0;
 
     return new Promise<void>((resolve, reject) => {
       const interval = setInterval(async () => {
         attempts++;
         const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-        const currentProgress = 50 + (attempts / maxAttempts) * 40; // 50% -> 90%
-        setProgress(currentProgress);
-
-        // Mensagens progressivas com tempo
+        
+        // Progresso mais detalhado baseado em fases
+        let currentProgress = 50;
         let statusMsg = '';
-        if (elapsedSeconds < 30) {
-          statusMsg = `Processando com IA... (${elapsedSeconds}s)`;
+        
+        if (elapsedSeconds < 10) {
+          currentProgress = 50 + (elapsedSeconds / 10) * 10; // 50% -> 60%
+          statusMsg = `Extraindo texto do documento... (${elapsedSeconds}s)`;
+        } else if (elapsedSeconds < 30) {
+          currentProgress = 60 + ((elapsedSeconds - 10) / 20) * 20; // 60% -> 80%
+          statusMsg = `Analisando com IA... (${elapsedSeconds}s)`;
         } else if (elapsedSeconds < 60) {
-          statusMsg = `Processando com IA... (${Math.floor(elapsedSeconds / 60)}min ${elapsedSeconds % 60}s)`;
-        } else if (elapsedSeconds < 120) {
-          statusMsg = `Processando com IA... (${Math.floor(elapsedSeconds / 60)}min - quase lá)`;
+          currentProgress = 80 + ((elapsedSeconds - 30) / 30) * 10; // 80% -> 90%
+          const mins = Math.floor(elapsedSeconds / 60);
+          const secs = elapsedSeconds % 60;
+          statusMsg = mins > 0 
+            ? `Organizando biomarcadores... (${mins}min ${secs}s)`
+            : `Organizando biomarcadores... (${elapsedSeconds}s)`;
         } else {
-          statusMsg = `Processando com IA... (${Math.floor(elapsedSeconds / 60)}min - aguarde mais um pouco)`;
+          currentProgress = 90 + ((elapsedSeconds - 60) / 120) * 8; // 90% -> 98%
+          const mins = Math.floor(elapsedSeconds / 60);
+          const secs = elapsedSeconds % 60;
+          statusMsg = `Finalizando processamento... (${mins}min ${secs}s)`;
         }
         
+        setProgress(Math.min(currentProgress, 98));
         setStatus(statusMsg);
-        onStatusUpdate?.(statusMsg, currentProgress);
-
-        // 🔔 Toast de progresso a cada 30 segundos
-        if (elapsedSeconds > 0 && elapsedSeconds % 30 === 0 && elapsedSeconds !== lastProgressToast) {
-          lastProgressToast = elapsedSeconds;
-          toast.info("Processamento em andamento", {
-            description: `Já se passaram ${elapsedSeconds}s. Estamos analisando seu exame com IA...`,
-            duration: 3000,
-          });
-        }
+        onStatusUpdate?.(statusMsg, Math.min(currentProgress, 98));
 
         try {
           // ========================================
@@ -306,16 +307,10 @@ export function useExamUpload() {
               console.log(`[Polling Híbrido] Total de biomarcadores: ${examData.total_biomarkers}`);
               
               const successMsg = examData.total_biomarkers 
-                ? `Processado! ${examData.total_biomarkers} biomarcadores extraídos`
-                : 'Processado com sucesso!';
+                ? `✅ Concluído! ${examData.total_biomarkers} biomarcadores extraídos`
+                : '✅ Concluído!';
               
               onStatusUpdate?.(successMsg, 100);
-              
-              // 🔔 Toast de sucesso via Supabase
-              toast.success("Exame processado via Supabase!", {
-                description: `${examData.total_biomarkers} biomarcadores extraídos em ${elapsedSeconds}s`,
-                duration: 4000,
-              });
               
               clearInterval(interval);
               resolve();
@@ -325,13 +320,6 @@ export function useExamUpload() {
             // ❌ Se falhou no Supabase, parar com erro
             if (examData.processing_status === 'error') {
               console.error(`[Polling Híbrido] ❌ Erro detectado no Supabase`);
-              
-              // 🔔 Toast de erro
-              toast.error("Erro no processamento", {
-                description: "O exame falhou ao ser processado. Tente novamente.",
-                duration: 5000,
-              });
-              
               clearInterval(interval);
               reject(new Error('Erro no processamento do exame'));
               return;
@@ -360,16 +348,10 @@ export function useExamUpload() {
               
               const totalBiomarkers = data.data.metadata?.total_exames || data.data.total_exames || 0;
               const successMsg = totalBiomarkers 
-                ? `Processado! ${totalBiomarkers} biomarcadores extraídos`
-                : 'Processado com sucesso!';
+                ? `✅ Concluído! ${totalBiomarkers} biomarcadores extraídos`
+                : '✅ Concluído!';
               
               onStatusUpdate?.(successMsg, 100);
-              
-              // 🔔 Toast de sucesso via AWS
-              toast.success("Exame processado via AWS!", {
-                description: `${totalBiomarkers} biomarcadores extraídos em ${elapsedSeconds}s`,
-                duration: 4000,
-              });
               
               clearInterval(interval);
               await syncExamToSupabase(examId, data);
@@ -379,13 +361,6 @@ export function useExamUpload() {
               console.log(`[Polling Híbrido] ⏳ AWS ainda processando...`);
             } else if (data.status === 'failed') {
               console.error(`[Polling Híbrido] ❌ AWS retornou status 'failed'`);
-              
-              // 🔔 Toast de erro AWS
-              toast.error("Erro no processamento AWS", {
-                description: "O exame falhou ao ser processado pela AWS. Tente novamente.",
-                duration: 5000,
-              });
-              
               clearInterval(interval);
               reject(new Error('Erro no processamento AWS'));
               return;
@@ -396,12 +371,7 @@ export function useExamUpload() {
           if (attempts >= maxAttempts) {
             console.log(`[Polling Híbrido] ⏱️ Timeout após ${elapsedSeconds}s - processamento continuará em background via webhook`);
             clearInterval(interval);
-            
-            toast.info("Processamento em andamento", {
-              description: "Seu exame está sendo processado em background. Recarregue a página em alguns minutos para ver o resultado.",
-              duration: 6000,
-            });
-            
+            onStatusUpdate?.("Processamento em background...", 95);
             resolve();
           }
         } catch (error) {
