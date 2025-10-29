@@ -453,6 +453,9 @@ export const DashboardUploadZone = () => {
                 {item.status === 'uploading' && (
                   <Loader2 className="w-5 h-5 animate-spin text-rest-cyan" />
                 )}
+                {item.status === 'processing' && (
+                  <Loader2 className="w-5 h-5 animate-spin text-rest-lightblue" />
+                )}
                 {item.status === 'completed' && (
                   <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
                     <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -473,7 +476,7 @@ export const DashboardUploadZone = () => {
                 </div>
               </div>
 
-              {item.status === 'uploading' && (
+              {(item.status === 'uploading' || item.status === 'processing') && (
                 <Progress value={item.progress} className="h-1" />
               )}
             </div>

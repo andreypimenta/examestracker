@@ -18,7 +18,7 @@ interface UploadOptions {
 export interface FileQueueItem {
   file: File;
   id: string;
-  status: 'pending' | 'uploading' | 'completed' | 'error';
+  status: 'pending' | 'uploading' | 'processing' | 'completed' | 'error';
   progress: number;
   statusMessage: string;
   examId?: string;
@@ -92,7 +92,7 @@ export function useExamUpload() {
     onComplete,
     onStatusUpdate,
   }: UploadOptions & {
-    onStatusUpdate?: (message: string, progress: number) => void;
+    onStatusUpdate?: (message: string, progress: number, status?: FileQueueItem['status']) => void;
   }) => {
     try {
       setUploading(true);
@@ -201,7 +201,7 @@ export function useExamUpload() {
 
       // 8. Start polling
       setStatus("Processando com IA...");
-      onStatusUpdate?.("Processando com IA...", 50);
+      onStatusUpdate?.("Processando com IA...", 50, 'processing');
       await pollExamStatus(patientId, s3Key, exam.id, onStatusUpdate);
 
       setProgress(100);
@@ -245,7 +245,7 @@ export function useExamUpload() {
     userId: string, 
     s3Key: string, 
     examId: string,
-    onStatusUpdate?: (message: string, progress: number) => void
+    onStatusUpdate?: (message: string, progress: number, status?: FileQueueItem['status']) => void
   ) => {
     const startTime = Date.now();
     let attempts = 0;
@@ -314,7 +314,7 @@ export function useExamUpload() {
         
         setProgress(Math.min(currentProgress, 98));
         setStatus(statusMsg);
-        onStatusUpdate?.(statusMsg, Math.min(currentProgress, 98));
+        onStatusUpdate?.(statusMsg, Math.min(currentProgress, 98), 'processing');
 
         try {
           const checkSource = getCheckSource(elapsedSeconds);
@@ -714,11 +714,13 @@ export function useExamUpload() {
     examDate, 
     onComplete,
     onMatchRequired,
+    onStatusUpdate,
   }: {
     file: File;
     examDate?: Date;
     onComplete?: () => void;
     onMatchRequired?: (extractedName: string, candidates: any[], examId: string) => void;
+    onStatusUpdate?: (message: string, progress: number, status?: FileQueueItem['status']) => void;
   }) => {
     try {
       setUploading(true);
@@ -792,6 +794,7 @@ export function useExamUpload() {
 
       // 4. Upload para S3 com Content-Type retornado pela AWS
       setStatus("Enviando arquivo...");
+      onStatusUpdate?.("Enviando arquivo...", 30);
       console.log(`[AutoMatch] Enviando ${file.name} com Content-Type da AWS: ${awsContentType}`);
 
       const uploadResponse = await fetch(uploadUrl, {
@@ -819,7 +822,8 @@ export function useExamUpload() {
 
       // 6. Poll AWS até ter o nome do paciente extraído
       setStatus("Processando com IA...");
-      await pollExamStatus("temp", s3Key, exam.id, undefined);
+      onStatusUpdate?.("Processando com IA...", 50, 'processing');
+      await pollExamStatus("temp", s3Key, exam.id, onStatusUpdate);
 
       // 7. Buscar dados processados
       const { data: processedExam } = await supabase
@@ -956,9 +960,10 @@ export function useExamUpload() {
             patientId,
             file: item.file,
             examDate,
-            onStatusUpdate: (message, progress) => {
+            onStatusUpdate: (message, progress, status) => {
               item.statusMessage = message;
               item.progress = progress;
+              if (status) item.status = status;
               onProgressUpdate?.([...queue]);
             },
             onComplete: () => {
@@ -972,6 +977,12 @@ export function useExamUpload() {
           await uploadExamWithAutoMatching({
             file: item.file,
             examDate,
+            onStatusUpdate: (message, progress, status) => {
+              item.statusMessage = message;
+              item.progress = progress;
+              if (status) item.status = status;
+              onProgressUpdate?.([...queue]);
+            },
             onComplete: () => {
               item.status = 'completed';
               item.progress = 100;
