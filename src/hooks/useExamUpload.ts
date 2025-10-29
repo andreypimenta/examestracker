@@ -743,13 +743,11 @@ export function useExamUpload() {
         contentType = typeMap[fileExtension] || 'application/octet-stream';
       }
 
-      // 2. Sanitizar nome do arquivo
+      // 2. Sanitizar nome do arquivo (AWS Lambda adiciona o timestamp)
       const sanitizedFileName = sanitizeFileName(file.name);
-      const timestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0].replace('T', '-');
-      const finalFileName = `${timestamp}-${sanitizedFileName}`;
 
       console.log(`[AutoMatch] Arquivo original: ${file.name}`);
-      console.log(`[AutoMatch] Arquivo sanitizado: ${finalFileName}`);
+      console.log(`[AutoMatch] Arquivo sanitizado: ${sanitizedFileName}`);
       console.log(`[AutoMatch] Content-Type: ${contentType}`);
 
       // 3. Get upload URL
@@ -762,7 +760,7 @@ export function useExamUpload() {
         body: JSON.stringify({
           action: "getUploadUrl",
           userId: "temp", // Temporário
-          fileName: finalFileName,
+          fileName: sanitizedFileName,
           contentType: contentType,
         }),
       });
@@ -772,13 +770,16 @@ export function useExamUpload() {
       setProgress(20);
 
       // 4. Create exam without patient_id (será preenchido depois)
+      // A AWS Lambda retorna o s3Key com timestamp, extrair o filename
+      const s3FileName = s3Key.split('/').pop() || sanitizedFileName;
+      
       const { data: exam, error: examError } = await supabase
         .from("exams")
         .insert({
           patient_id: null, // NULL temporariamente
           uploaded_by: user.id,
           aws_file_key: s3Key,
-          aws_file_name: finalFileName,
+          aws_file_name: s3FileName, // ✅ Usar o nome do S3 com timestamp da Lambda
           exam_date: examDate?.toISOString().split("T")[0],
           processing_status: "uploading",
         })
