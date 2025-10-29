@@ -1,345 +1,458 @@
 """
-Parser de Exames com Claude Haiku
-Extrai, normaliza e deduplica resultados de exames
-Economia estimada: ~66% vs Claude Sonnet
+Exam Parser - Extração inteligente de exames laboratoriais
+Integração completa: Normalizer + Validators + Claude AI
+Versão: 5.0.0 - Otimizada para laboratórios brasileiros
 """
 
-import re
 import json
-import uuid
-from typing import List, Dict, Any
-from src.config import (
-    CLAUDE_HAIKU_MODEL,
-    CLAUDE_MAX_TOKENS,
-    CLAUDE_TEMPERATURE,
-    EXAM_NAME_SIMILARITY_THRESHOLD
+import re
+from typing import List, Dict, Any, Optional
+from pathlib import Path
+
+# Imports locais
+from src.utils.validators import (
+    normalize_value,
+    extract_numeric_value,
+    validate_value_format,
+    parse_reference_range,
+    validate_exam_structure,
+    normalize_unit,
+    calculate_exam_status,
+    deduplicate_exams
 )
 
 
-def parse_exams_from_text(extracted_text: str, anthropic_client) -> List[Dict[str, Any]]:
+# ========================================
+# PROMPT OTIMIZADO PARA LABORATÓRIOS BRASILEIROS
+# ========================================
+
+def build_claude_prompt(
+    extracted_text: str,
+    biomarker_examples: str,
+    extracted_name: Optional[str] = None,
+    extracted_birth_date: Optional[str] = None,
+    extracted_lab: Optional[str] = None
+) -> str:
+    """Constrói prompt otimizado para extração de exames brasileiros"""
+    
+    # Hints de dados pré-extraídos
+    extraction_hints = ""
+    if extracted_name:
+        extraction_hints += f"\n✅ Nome do Paciente: {extracted_name}"
+    if extracted_birth_date:
+        extraction_hints += f"\n✅ Data de Nascimento: {extracted_birth_date}"
+    if extracted_lab:
+        extraction_hints += f"\n✅ Laboratório: {extracted_lab}"
+    
+    if extraction_hints:
+        extraction_hints = f"\n## 🔍 DADOS PRÉ-EXTRAÍDOS{extraction_hints}\n"
+    
+    prompt = f"""Você é um especialista em extração de dados de exames laboratoriais BRASILEIROS.
+
+{extraction_hints}
+
+## ⚠️ REGRAS CRÍTICAS PARA VALORES BRASILEIROS
+
+### 1. CONVERSÃO DECIMAL (CRÍTICO!)
+Laboratórios brasileiros usam VÍRGULA como separador decimal:
+- "38,0 mm/h" → valor: "38.0", valor_numerico: 38.0
+- "2,90 g/dL" → valor: "2.9", valor_numerico: 2.9
+- "0,86 UI/mL" → valor: "0.86", valor_numerico: 0.86
+- "1.250 células" → valor: "1250", valor_numerico: 1250 (ponto é separador de milhar!)
+
+### 2. VALORES COM OPERADORES
+Preserve operadores MAS extraia número:
+- "< 0,5 mg/dL" → valor: "<0.5", valor_numerico: 0.5
+- "> 100 UI/mL" → valor: ">100", valor_numerico: 100
+- ">= 30" → valor: ">=30", valor_numerico: 30
+- "Superior a 8 UI/mL" → valor: ">8", valor_numerico: null (sem número exato)
+
+### 3. MÚLTIPLOS RESULTADOS (CRÍTICO!)
+Se houver DUAS linhas de resultado para o mesmo exame, SEMPRE use o VALOR NUMÉRICO:
+
+Exemplo ERRADO:
+```
+Resultado: Superior a 8 UI/mL
+Resultado: 32,00 UI/mL
+```
+❌ Extrair apenas: "Superior a 8 UI/mL"
+
+Exemplo CORRETO:
+✅ Extrair: valor: "32.0", valor_numerico: 32.0
+
+### 4. VALORES QUALITATIVOS
+Retorne SEM valor_numerico:
+- "Reagente" → valor: "Reagente", valor_numerico: null
+- "Não Reagente" → valor: "Não Reagente", valor_numerico: null
+- "Negativo" → valor: "Negativo", valor_numerico: null
+- "Positivo" → valor: "Positivo", valor_numerico: null
+
+Se tiver PADRÃO + qualitativo:
+- "Reagente - Nuclear Pontilhado Fino 1/80" → valor: "Reagente - Nuclear Pontilhado Fino 1/80"
+
+### 5. VALORES DE REFERÊNCIA
+Extraia min e max separadamente:
+- "0 - 20 mm/h" → reference_min: 0, reference_max: 20
+- "Inferior a 8 UI/mL" → reference_min: null, reference_max: 8
+- "Superior a 40 mg/dL" → reference_min: 40, reference_max: null
+- "12 a 36 mg/dL" → reference_min: 12, reference_max: 36
+
+## 📋 EXAMES VÁLIDOS NO DATABASE
+
+Use PREFERENCIALMENTE estes nomes padronizados:
+
+{biomarker_examples}
+
+## 🔬 EXPANSÃO DE EXAMES COMPOSTOS
+
+### ⚠️ NUNCA retorne apenas "Hemograma: Análise completa"
+### ✅ SEMPRE expanda em biomarcadores individuais
+
+**Hemograma → 15+ itens:**
+- Hemácias, Hemoglobina, Hematócrito, VCM, HCM, CHCM, RDW
+- Leucócitos, Neutrófilos (absoluto), Neutrófilos (%), Linfócitos (absoluto), Linfócitos (%)
+- Monócitos, Eosinófilos, Basófilos, Plaquetas
+
+**Lipidograma → 5 itens:**
+- Colesterol Total, HDL, LDL, VLDL, Triglicerídeos
+
+**Função Hepática → 7 itens:**
+- TGO (AST), TGP (ALT), Gama GT, Fosfatase Alcalina
+- Bilirrubina Total, Bilirrubina Direta, Bilirrubina Indireta
+
+**Função Renal → 4 itens:**
+- Ureia, Creatinina, Ácido Úrico, TFG
+
+**Tireoide → 3+ itens:**
+- TSH, T4 Livre, T3 Livre
+
+## 📤 FORMATO DE SAÍDA JSON
+
+```json
+{{
+  "nome": "Nome Completo do Paciente",
+  "data_nascimento": "DD/MM/YYYY",
+  "laboratorio": "Nome do Laboratório",
+  "data_exame": "DD/MM/YYYY",
+  "exams": [
+    {{
+      "exam_name": "Nome Padrão do Exame",
+      "value": "32.0" ou "Reagente" (string, COM operador se houver),
+      "value_numeric": 32.0 ou null (float, SEM operador),
+      "unit": "UI/mL",
+      "reference_min": 0.0,
+      "reference_max": 10.0,
+      "reference_text": "Não Reagente: < 10,0 Elia U/mL",
+      "method": "ELISA" (opcional),
+      "status": "alto" | "baixo" | "normal" | "indeterminado"
+    }}
+  ]
+}}
+```
+
+## 🎯 REGRAS FINAIS
+
+1. **SEMPRE** converta vírgulas para pontos em valores numéricos
+2. **SEMPRE** expanda exames compostos (Hemograma, Lipidograma, etc)
+3. **SEMPRE** extraia valor numérico quando houver dois resultados
+4. **NUNCA** pule exames mesmo sem valor de referência
+5. **SEMPRE** use nomes padronizados da lista acima quando possível
+6. Para exames NÃO listados, use o nome mais claro encontrado no laudo
+
+---
+
+## 📄 TEXTO DO EXAME:
+
+{extracted_text}
+
+Retorne APENAS o JSON, sem explicações."""
+
+    return prompt
+
+
+# ========================================
+# FUNÇÃO PRINCIPAL DE PARSING
+# ========================================
+
+def parse_lab_report(
+    extracted_text: str,
+    anthropic_client,
+    normalization_service=None,
+    extracted_name: Optional[str] = None,
+    extracted_birth_date: Optional[str] = None,
+    extracted_lab: Optional[str] = None,
+    max_tokens: int = 8192
+) -> Dict[str, Any]:
     """
-    Parseia exames usando Claude Haiku com prompt otimizado
-    Processa documentos completos com chunking automático
+    Extrai dados estruturados de laudo laboratorial
     
     Args:
-        extracted_text: Texto extraído do PDF
-        anthropic_client: Cliente Anthropic
+        extracted_text: Texto extraído do PDF/imagem
+        anthropic_client: Cliente Anthropic configurado
+        normalization_service: Instância de BiomarkerNormalizationService (opcional)
+        extracted_name: Nome pré-extraído (hint)
+        extracted_birth_date: Data pré-extraída (hint)
+        extracted_lab: Laboratório pré-extraído (hint)
+        max_tokens: Limite de tokens para resposta do Claude
         
     Returns:
-        Lista de exames estruturados
+        dict com dados estruturados e validados
     """
-    # Processar texto completo em chunks se necessário
-    max_chunk_size = 12000  # ~3000 tokens
     
-    if len(extracted_text) > max_chunk_size:
-        print(f'📄 Documento longo detectado: {len(extracted_text)} caracteres')
-        return _parse_long_document(extracted_text, anthropic_client, max_chunk_size)
+    # Limitar tamanho do texto
+    max_chars = 100000
+    if len(extracted_text) > max_chars:
+        extracted_text = extracted_text[:max_chars]
+        print(f'⚠️ Texto truncado para {max_chars} caracteres')
+    
+    # Construir lista de biomarcadores válidos
+    biomarker_examples = ""
+    if normalization_service:
+        examples_list = []
+        # Pegar primeiros 100 biomarcadores
+        for bio in normalization_service.biomarkers[:100]:
+            line = f"- {bio['nome_padrao']}"
+            if bio.get('unidade'):
+                line += f" ({bio['unidade']})"
+            if bio.get('sinonimos', [])[:2]:
+                line += f" | Também: {', '.join(bio['sinonimos'][:2])}"
+            examples_list.append(line)
+        
+        biomarker_examples = '\n'.join(examples_list)
+        print(f'✅ Usando {len(normalization_service.biomarkers)} biomarcadores da especificação')
     else:
-        return _parse_single_chunk(extracted_text, anthropic_client)
-
-
-def _parse_single_chunk(text: str, anthropic_client) -> List[Dict[str, Any]]:
-    """Parseia um único chunk de texto"""
+        biomarker_examples = "(Serviço de normalização não disponível)"
+        print('⚠️ Normalization service não disponível')
     
-    # Lista de biomarcadores válidos (top 80 mais comuns)
-    valid_biomarkers = """
-BIOMARCADORES VÁLIDOS (use nomes padronizados):
-- GLICEMIA JEJUM, HbA1c, INSULINA, HOMA IR, PEPTÍDEO C
-- CT (Colesterol Total), LDL, HDL, VLDL, TG (Triglicérides)
-- CREATININA, URÉIA, TFG CKD-EPI, ÁCIDO ÚRICO
-- TGO/AST, TGP/ALT, GGT, FA (Fosfatase Alcalina), ALBUMINA
-- TSH, T3 LIVRE, T4 LIVRE, T3 TOTAL, T4 TOTAL
-- TESTOSTERONA TOTAL, TESTOSTERONA LIVRE, ESTRADIOL, PROGESTERONA
-- CORTISOL, DHEA-S, PROLACTINA, LH, FSH
-- 25-OH VIT D, VIT B12, ÁCIDO FÓLICO, FERRITINA, FERRO
-- PCR ULTRA SENSÍVEL, VHS, HOMOCISTEÍNA, FIBRINOGÊNIO
-- HEMOGLOBINA, HEMATÓCRITO, HEMÁCIAS, LEUCÓCITOS, PLAQUETAS
-- NEUTRÓFILOS, LINFÓCITOS, MONÓCITOS, EOSINÓFILOS, BASÓFILOS
-- VCM, HCM, CHCM, RDW
-- PSA TOTAL, PSA LIVRE, CEA, CA 125, CA 19-9
-- SÓDIO, POTÁSSIO, CÁLCIO, MAGNÉSIO, FÓSFORO, CLORO
-- PROTEÍNAS TOTAIS, BILIRRUBINA TOTAL, BBD, BBI
-"""
+    # Construir prompt
+    prompt = build_claude_prompt(
+        extracted_text,
+        biomarker_examples,
+        extracted_name,
+        extracted_birth_date,
+        extracted_lab
+    )
     
-    prompt = f"""Você é um extrator especializado de laudos laboratoriais brasileiros.
-
-═══════════════════════════════════════
-🎯 TAREFA: EXTRAIR VALORES DE TABELAS
-═══════════════════════════════════════
-
-TABELAS VERTICAIS (90% dos casos brasileiros):
-┌────────────────────────┬────────────┐
-│ Valor de Referência    │ Resultado  │  ← EXTRAIA DESTA COLUNA
-├────────────────────────┼────────────┤
-│ 0 - 20 mm/h           │ 38,0 mm/h  │  → value: "38.0", unit: "mm/h"
-│ até 5 mg/L            │ 2,90 mg/L  │  → value: "2.90", unit: "mg/L"
-│ 70 - 99 mg/dL         │ 95 mg/dL   │  → value: "95", unit: "mg/dL"
-└────────────────────────┴────────────┘
-
-OPERADORES (valores não-detectáveis):
-│ Inferior a 8 UI/mL │  → value: "< 8", unit: "UI/mL"
-│ Superior a 1000    │  → value: "> 1000"
-
-TABELAS HORIZONTAIS (10% dos casos):
-Glicemia de Jejum: 95 mg/dL (VR: 70-99)
-→ value: "95", unit: "mg/dL"
-
-═══════════════════════════════════════
-⚠️ REGRAS CRÍTICAS
-═══════════════════════════════════════
-
-1. **SEMPRE extraia o valor da coluna "Resultado"**
-2. **Converta vírgula → ponto**: "38,0" → "38.0"
-3. **Remova unidades do valor**: "95 mg/dL" → value: "95", unit: "mg/dL"
-4. **Preserve operadores**: "Inferior a X" → "< X", "Superior a X" → "> X"
-5. **Se não encontrar valor numérico, deixe campo vazio (não invente)**
-6. **Ignore cabeçalhos de tabela** (não são biomarcadores)
-7. **NUNCA extraia nomes de laboratórios ou cabeçalhos como biomarcadores**
-
-═══════════════════════════════════════
-EXPANSÃO DE EXAMES COMPOSTOS
-═══════════════════════════════════════
-
-- **Hemograma Completo**: Extraia 13+ biomarcadores individuais:
-  Hemácias, Hemoglobina, Hematócrito, VCM, HCM, CHCM, RDW,
-  Leucócitos, Neutrófilos, Linfócitos, Monócitos, Eosinófilos, Basófilos, Plaquetas
-
-- **Lipidograma**: Extraia 5 biomarcadores:
-  CT (Colesterol Total), LDL, HDL, VLDL, TG (Triglicérides)
-
-- **Função Renal**: Creatinina, Ureia, TFG CKD-EPI, Ácido Úrico
-
-- **Função Hepática**: TGO/AST, TGP/ALT, GGT, Fosfatase Alcalina, Bilirrubinas, Albumina
-
-{valid_biomarkers}
-
-═══════════════════════════════════════
-📋 FORMATO JSON (SOMENTE ISSO)
-═══════════════════════════════════════
-
-[
-  {{
-    "exam_name": "VHS",
-    "value": "38.0",
-    "unit": "mm/h",
-    "reference_min": "0",
-    "reference_max": "20",
-    "status": "alto",
-    "method": null,
-    "observation": null
-  }},
-  {{
-    "exam_name": "FATOR REUMATÓIDE",
-    "value": "< 8",
-    "unit": "UI/mL",
-    "reference_min": null,
-    "reference_max": "8",
-    "status": "normal",
-    "method": null,
-    "observation": null
-  }},
-  {{
-    "exam_name": "GLICEMIA JEJUM",
-    "value": "95",
-    "unit": "mg/dL",
-    "reference_min": "70",
-    "reference_max": "99",
-    "status": "normal",
-    "method": null,
-    "observation": null
-  }}
-]
-
-═══════════════════════════════════════
-📄 LAUDO A PROCESSAR
-═══════════════════════════════════════
-
-{text[:12000]}
-
-═══════════════════════════════════════
-✅ RESPOSTA (SOMENTE JSON, SEM TEXTO)
-═══════════════════════════════════════"""
-    
+    # Chamar Claude
     try:
-        message = anthropic_client.messages.create(
-            model=CLAUDE_HAIKU_MODEL,
-            max_tokens=CLAUDE_MAX_TOKENS,
-            temperature=CLAUDE_TEMPERATURE,
-            messages=[{"role": "user", "content": prompt}]
+        print('🤖 Chamando Claude Haiku para parsing...')
+        
+        response = anthropic_client.messages.create(
+            model="claude-3-5-haiku-20241022",
+            max_tokens=max_tokens,
+            temperature=0,
+            messages=[{
+                "role": "user",
+                "content": prompt
+            }]
         )
         
-        response_text = message.content[0].text
-        
         # Extrair JSON da resposta
-        json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
-        if json_match:
-            exams = json.loads(json_match.group(0))
-            print(f'✅ Claude Haiku: {len(exams)} biomarcadores extraídos')
-            return exams
-        else:
-            print('⚠️ Claude Haiku: Resposta sem JSON válido')
-            return []
+        response_text = response.content[0].text
         
-    except Exception as e:
-        print(f'❌ Claude Haiku falhou: {e}')
-        import traceback
-        traceback.print_exc()
-        return []
-
-
-def _parse_long_document(text: str, anthropic_client, chunk_size: int) -> List[Dict[str, Any]]:
-    """
-    Parseia documentos longos dividindo em chunks com overlap
-    Evita perder biomarcadores nas bordas dos chunks
-    """
-    overlap = 1000  # 1000 chars de overlap entre chunks
-    chunks = []
-    
-    # Dividir texto em chunks com overlap
-    for i in range(0, len(text), chunk_size - overlap):
-        chunk = text[i:i + chunk_size]
-        chunks.append(chunk)
-    
-    print(f'📦 Processando {len(chunks)} chunks com overlap...')
-    
-    all_exams = []
-    seen_exams = set()  # Para deduplicar entre chunks
-    
-    for idx, chunk in enumerate(chunks):
-        print(f'🔄 Processando chunk {idx + 1}/{len(chunks)}...')
-        chunk_exams = _parse_single_chunk(chunk, anthropic_client)
+        # Tentar encontrar JSON no texto
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if not json_match:
+            print('❌ Não foi possível extrair JSON da resposta')
+            return {
+                'error': 'Falha ao extrair JSON',
+                'raw_response': response_text[:500]
+            }
         
-        # Adicionar apenas exames únicos (evitar duplicatas do overlap)
-        for exam in chunk_exams:
-            exam_key = f"{exam.get('exam_name', '')}-{exam.get('value', '')}"
-            if exam_key not in seen_exams:
-                all_exams.append(exam)
-                seen_exams.add(exam_key)
-    
-    print(f'✅ Total de biomarcadores extraídos de todos os chunks: {len(all_exams)}')
-    return all_exams
-
-
-def clean_reference_values(exames: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    Normaliza valores de referência (min/max)
-    
-    Args:
-        exames: Lista de exames brutos
+        parsed_data = json.loads(json_match.group(0))
+        print(f'✅ JSON parseado com sucesso')
         
-    Returns:
-        Lista de exames com referências normalizadas
-    """
-    for exam in exames:
-        # Garantir que reference_min e reference_max sejam float ou None
-        for field in ['reference_min', 'reference_max']:
-            value = exam.get(field)
+        # Validar e processar exames
+        exams_raw = parsed_data.get('exams', [])
+        if not exams_raw:
+            exams_raw = parsed_data.get('exames', [])
+        
+        exams_processed = []
+        
+        for exam in exams_raw:
+            # Validar estrutura básica
+            is_valid, error = validate_exam_structure(exam)
+            if not is_valid:
+                print(f'⚠️ Exame inválido: {error}')
+                continue
             
-            if value is None or value == '':
-                exam[field] = None
-            elif isinstance(value, str):
-                # Limpar string e converter
-                clean_value = value.strip().replace(',', '.')
-                try:
-                    exam[field] = float(clean_value)
-                except ValueError:
-                    exam[field] = None
-            elif isinstance(value, (int, float)):
-                exam[field] = float(value)
+            # Normalizar e processar
+            processed_exam = process_exam(exam, normalization_service)
+            exams_processed.append(processed_exam)
         
-        # Garantir que value seja numérico quando possível
-        value = exam.get('value')
-        if isinstance(value, str):
-            clean_value = value.strip().replace(',', '.')
-            # Remover unidades que possam estar grudadas
-            clean_value = re.sub(r'[a-zA-Z/%]+$', '', clean_value).strip()
-            try:
-                exam['value'] = float(clean_value)
-            except ValueError:
-                pass  # Manter como string se não for conversível
+        # Deduplicar
+        exams_final = deduplicate_exams(exams_processed)
+        
+        print(f'✅ Processados {len(exams_final)} exames (de {len(exams_raw)} brutos)')
+        
+        # Construir resultado final
+        result = {
+            'nome': parsed_data.get('nome', extracted_name or ''),
+            'data_nascimento': parsed_data.get('data_nascimento', extracted_birth_date or ''),
+            'laboratorio': parsed_data.get('laboratorio', extracted_lab or ''),
+            'data_exame': parsed_data.get('data_exame', ''),
+            'exams': exams_final,
+            'metadata': {
+                'total_exams': len(exams_final),
+                'extraction_method': 'claude_haiku',
+                'normalized_exams': sum(1 for e in exams_final if e.get('biomarker_id'))
+            }
+        }
+        
+        return result
+        
+    except json.JSONDecodeError as e:
+        print(f'❌ Erro ao parsear JSON: {e}')
+        return {'error': f'JSON inválido: {str(e)}'}
     
-    return exames
+    except Exception as e:
+        print(f'❌ Erro no parsing: {e}')
+        return {'error': str(e)}
 
 
-def deduplicate_exams(exames: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+# ========================================
+# PROCESSAMENTO INDIVIDUAL DE EXAME
+# ========================================
+
+def process_exam(exam: Dict[str, Any], normalization_service=None) -> Dict[str, Any]:
     """
-    Remove exames duplicados, mantendo o mais completo
+    Processa e valida um exame individual
     
     Args:
-        exames: Lista de exames (pode ter duplicatas)
+        exam: Exame bruto do Claude
+        normalization_service: Serviço de normalização (opcional)
         
     Returns:
-        Lista dedupilcada
+        Exame processado e validado
     """
-    from difflib import SequenceMatcher
+    processed = {}
     
-    def are_similar(name1: str, name2: str, threshold: float = EXAM_NAME_SIMILARITY_THRESHOLD) -> bool:
-        """Verifica se dois nomes de exames são similares"""
-        n1 = name1.lower().strip()
-        n2 = name2.lower().strip()
-        return SequenceMatcher(None, n1, n2).ratio() >= threshold
+    # Nome do exame
+    exam_name = exam.get('exam_name', '').strip()
+    processed['exam_name'] = exam_name
     
-    def completeness_score(exam: Dict[str, Any]) -> int:
-        """Calcula pontuação de completude de um exame"""
-        score = 0
-        if exam.get('value') not in [None, '']:
-            score += 10
-        if exam.get('reference_min') is not None:
-            score += 5
-        if exam.get('reference_max') is not None:
-            score += 5
-        if exam.get('unit'):
-            score += 3
-        if exam.get('status'):
-            score += 2
-        if exam.get('method'):
-            score += 1
-        return score
+    # Normalizar com o serviço (se disponível)
+    biomarker_id = None
+    normalized_name = exam_name
+    category = None
     
-    # Agrupar exames similares
-    groups = []
-    for exam in exames:
-        exam_name = exam.get('exam_name', '')
+    if normalization_service and exam_name:
+        match, rejection = normalization_service.find_biomarker(exam_name)
+        if match:
+            normalized_name = match.normalized_name
+            biomarker_id = f"bio_{normalized_name.lower().replace(' ', '_')}"
+            category = match.category
+            print(f'✅ Normalizado: {exam_name} → {normalized_name} ({match.match_type})')
+        elif rejection:
+            print(f'⚠️ Não normalizado: {exam_name} ({rejection.reason})')
+    
+    processed['normalized_name'] = normalized_name
+    if biomarker_id:
+        processed['biomarker_id'] = biomarker_id
+    if category:
+        processed['category'] = category
+    
+    # Valor
+    value_raw = exam.get('value', '')
+    if value_raw is not None:
+        value_normalized = normalize_value(str(value_raw))
+        processed['value'] = value_normalized
         
-        # Tentar adicionar a um grupo existente
-        added = False
-        for group in groups:
-            if are_similar(group[0]['exam_name'], exam_name):
-                group.append(exam)
-                added = True
-                break
-        
-        # Criar novo grupo se necessário
-        if not added:
-            groups.append([exam])
+        # Valor numérico
+        value_numeric = extract_numeric_value(value_normalized)
+        if value_numeric is not None:
+            processed['value_numeric'] = value_numeric
     
-    # Manter o mais completo de cada grupo
-    deduplicated = []
-    for group in groups:
-        if len(group) == 1:
-            deduplicated.append(group[0])
-        else:
-            # Ordenar por completude e pegar o melhor
-            sorted_group = sorted(group, key=completeness_score, reverse=True)
-            deduplicated.append(sorted_group[0])
-            print(f'🔄 Deduplicado: {sorted_group[0]["exam_name"]} ({len(group)} versões)')
+    # Unidade
+    unit = exam.get('unit', '').strip()
+    if unit:
+        processed['unit'] = normalize_unit(unit)
     
-    print(f'✅ Deduplicação: {len(exames)} -> {len(deduplicated)} exames')
-    return deduplicated
+    # Referências
+    ref_min = exam.get('reference_min')
+    ref_max = exam.get('reference_max')
+    ref_text = exam.get('reference_text', '').strip()
+    
+    # Se não tiver ref_min/max mas tiver ref_text, tentar extrair
+    if (ref_min is None and ref_max is None) and ref_text:
+        parsed_refs = parse_reference_range(ref_text)
+        ref_min = parsed_refs.get('reference_min')
+        ref_max = parsed_refs.get('reference_max')
+    
+    if ref_min is not None:
+        processed['reference_min'] = float(ref_min)
+    if ref_max is not None:
+        processed['reference_max'] = float(ref_max)
+    if ref_text:
+        processed['reference_text'] = ref_text
+    
+    # Método
+    method = exam.get('method', '').strip()
+    if method:
+        processed['method'] = method
+    
+    # Status
+    status = exam.get('status', '').lower()
+    if not status or status not in ['normal', 'baixo', 'alto', 'indeterminado']:
+        # Calcular automaticamente
+        status = calculate_exam_status(
+            processed.get('value_numeric'),
+            processed.get('reference_min'),
+            processed.get('reference_max')
+        )
+    processed['status'] = status
+    
+    # Resultado qualitativo (se aplicável)
+    qualitativos = ['reagente', 'não reagente', 'nao reagente', 'positivo', 'negativo',
+                    'indetectável', 'indetectavel', 'detectável', 'detectavel']
+    if value_normalized and value_normalized.lower() in qualitativos:
+        processed['qualitative_result'] = value_normalized
+    
+    return processed
 
 
-def assign_biomarker_ids(exames: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+# ========================================
+# FUNÇÕES DE UTILIDADE
+# ========================================
+
+def validate_parsed_result(result: Dict[str, Any]) -> bool:
     """
-    Adiciona IDs únicos a cada exame
+    Valida resultado parseado
     
-    Args:
-        exames: Lista de exames
-        
     Returns:
-        Lista de exames com biomarker_id
+        True se válido, False caso contrário
     """
-    for exam in exames:
-        if 'biomarker_id' not in exam:
-            exam['biomarker_id'] = str(uuid.uuid4())
+    if not result or 'exams' not in result:
+        return False
     
-    return exames
+    exams = result.get('exams', [])
+    if not exams or len(exams) == 0:
+        return False
+    
+    # Verificar se pelo menos 50% dos exames têm valor
+    exams_with_value = sum(1 for e in exams if e.get('value'))
+    if exams_with_value / len(exams) < 0.5:
+        return False
+    
+    return True
+
+
+def get_parsing_stats(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Retorna estatísticas do parsing"""
+    if not result or 'exams' not in result:
+        return {'error': 'Resultado inválido'}
+    
+    exams = result.get('exams', [])
+    
+    return {
+        'total_exams': len(exams),
+        'with_numeric_value': sum(1 for e in exams if e.get('value_numeric') is not None),
+        'with_reference': sum(1 for e in exams if e.get('reference_min') or e.get('reference_max')),
+        'normalized': sum(1 for e in exams if e.get('biomarker_id')),
+        'status_counts': {
+            'normal': sum(1 for e in exams if e.get('status') == 'normal'),
+            'alto': sum(1 for e in exams if e.get('status') == 'alto'),
+            'baixo': sum(1 for e in exams if e.get('status') == 'baixo'),
+            'indeterminado': sum(1 for e in exams if e.get('status') == 'indeterminado')
+        }
+    }

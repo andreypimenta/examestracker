@@ -31,10 +31,7 @@ from src.processors import (
     extract_text_universal,
     extract_text_from_image_with_vision,
     extract_header_with_cache,
-    parse_exams_from_text,
-    clean_reference_values,
-    deduplicate_exams,
-    assign_biomarker_ids,
+    parse_lab_report,
     ImageProcessor,
     is_image_supported
 )
@@ -419,15 +416,36 @@ def process_exam_main(event: dict) -> dict:
             gemini_client, 
             header_cache
         )
-        patient_name = header_data.get('paciente') or header_data.get('nome', 'N/A')
-        logger.info(f"✅ Header extracted: {patient_name}")
+        extracted_name = header_data.get('paciente') or header_data.get('nome', 'N/A')
+        extracted_birth_date = header_data.get('data_nascimento')
+        extracted_lab = header_data.get('laboratorio')
+        exam_date = header_data.get('data_exame')
         
-        # 8. Parse biomarkers (Claude Haiku)
-        raw_biomarkers = parse_exams_from_text(extracted_text, anthropic_client)
-        cleaned = clean_reference_values(raw_biomarkers)
-        deduped = deduplicate_exams(cleaned)
-        final = assign_biomarker_ids(deduped)
-        logger.info(f"✅ Parsed {len(final)} biomarkers")
+        logger.info(f"✅ Header extracted: {extracted_name}")
+        
+        # 8. Parse biomarkers (Claude Haiku v5.0 - integrado)
+        result = parse_lab_report(
+            extracted_text=extracted_text,
+            anthropic_client=anthropic_client,
+            normalization_service=normalization_service,
+            extracted_name=extracted_name,
+            extracted_birth_date=extracted_birth_date,
+            extracted_lab=extracted_lab
+        )
+        
+        # Atualizar campos do header com dados validados do Claude
+        if result.get('nome'):
+            extracted_name = result['nome']
+        if result.get('data_nascimento'):
+            extracted_birth_date = result['data_nascimento']
+        if result.get('laboratorio'):
+            extracted_lab = result['laboratorio']
+        if result.get('data_exame'):
+            exam_date = result['data_exame']
+        
+        # Exames já vêm processados, normalizados e deduplicados
+        final = result.get('exams', [])
+        logger.info(f"✅ Parsed {len(final)} biomarkers (v5.0 integrated)")
         
         # ✅ CAMADA 2: FALLBACK COM REGEX para valores vazios
         import re
@@ -470,51 +488,28 @@ def process_exam_main(event: dict) -> dict:
                             logger.info(f"✅ Regex extraiu ({pattern_type}): {exam_name} = {exam['value']} {exam['unit']}")
                             break
         
-        # 9. Normalize biomarkers
-        try:
-            # Construir payload no formato correto
-            payload = {
-                'biomarcadores': [
-                    {
-                        'nome': b.get('exam_name', ''),
-                        'valor': b.get('value'),
-                        'unidade': b.get('unit'),
-                        'referencia': f"{b.get('reference_min', '')}-{b.get('reference_max', '')}" if b.get('reference_min') or b.get('reference_max') else None
-                    }
-                    for b in final
-                ],
-                'data_exame': header_data.get('data_exame')
-            }
-            
-            # Chamar método correto - retorna ValidationResult (dataclass)
-            result = normalization_service.validate_payload(payload)
-            
-            # Acessar atributos (não subscript) - CORRIGIDO
-            normalized = result.processed_biomarkers
-            rejected = result.rejected_biomarkers
-            
-            logger.info(f"✅ Normalized: {len(normalized)} matched, {len(rejected)} rejected")
-            
-        except Exception as e:
-            logger.error(f"❌ Normalization failed: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            normalized = final
-            rejected = []
+        # 9. Separar rejeitados (já processado no parse_lab_report)
+        normalized = final
+        rejected = []
         
         # 10. Save to DynamoDB
         exam_result = {
-            'PK': exam_id,                      # ← Chave primária
-            'SK': 'EXAM',                       # ← Sort key (ajustar se necessário)
+            'PK': exam_id,
+            'SK': 'EXAM',
             'exam_id': exam_id,
             's3_key': s3_key,
-            'extracted_text': extracted_text[:5000],  # Limitar para não exceder limite DynamoDB
-            'header': header_data,
+            'extracted_text': extracted_text[:5000],
+            'header': {
+                'paciente': extracted_name,
+                'data_nascimento': extracted_birth_date,
+                'laboratorio': extracted_lab,
+                'data_exame': exam_date
+            },
             'biomarkers': normalized,
             'rejected_biomarkers': rejected,
             'stats': calculate_exam_stats(normalized),
-            'timestamp': header_data.get('data_exame', ''),
-            'patient_name': header_data.get('paciente', 'N/A')
+            'timestamp': exam_date or '',
+            'patient_name': extracted_name
         }
         
         # ✅ CAMADA 3: VALIDAÇÃO PRÉ-DYNAMODB - Logging detalhado

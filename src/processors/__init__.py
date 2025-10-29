@@ -23,10 +23,10 @@ from .header_processor import (
 )
 
 from .exam_parser import (
-    parse_exams_from_text,
-    clean_reference_values,
-    deduplicate_exams,
-    assign_biomarker_ids
+    parse_lab_report,
+    process_exam,
+    validate_parsed_result,
+    get_parsing_stats
 )
 
 from .image_processor import (
@@ -52,10 +52,10 @@ __all__ = [
     'extract_header_with_cache',
     
     # Exam parsing
-    'parse_exams_from_text',
-    'clean_reference_values',
-    'deduplicate_exams',
-    'assign_biomarker_ids',
+    'parse_lab_report',
+    'process_exam',
+    'validate_parsed_result',
+    'get_parsing_stats',
     
     # Image processing
     'ImageProcessor',
