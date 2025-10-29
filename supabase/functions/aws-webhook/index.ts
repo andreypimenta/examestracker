@@ -216,11 +216,22 @@ serve(async (req) => {
                 refMax = refMax || parsed.max;
               }
               
+              // Use nome_original as fallback if nome is empty
+              const biomarkerName = exam.nome || exam.nome_original;
+              const resultValue = exam.resultado || exam.valor_original || '';
+              
+              // Skip biomarkers without name
+              if (!biomarkerName) {
+                console.warn('Skipping biomarker without name:', exam);
+                return null;
+              }
+              
               return {
                 exam_id: examId,
-                biomarker_name: exam.nome,
+                biomarker_name: biomarkerName,
+                original_name: exam.nome_original || null,
                 category: exam.categoria || null,
-                value: exam.resultado || '',
+                value: resultValue,
                 value_numeric: exam.valor_numerico || null,
                 unit: exam.unidade || null,
                 reference_min: refMin,
@@ -229,9 +240,11 @@ serve(async (req) => {
                 deviation_percentage: exam.percentual_desvio || null,
                 observation: exam.observacao || null,
                 layman_explanation: exam.explicacao_leiga || null,
-                possible_causes: exam.causas_possiveis || null
+                possible_causes: exam.causas_possiveis || null,
+                normalization_type: exam.tipo_normalizacao || null,
+                normalization_confidence: exam.confianca_normalizacao || null
               };
-            });
+            }).filter(Boolean);
 
             // Delete existing results for this exam
             const { error: deleteError } = await supabase
