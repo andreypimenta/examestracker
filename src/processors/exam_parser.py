@@ -61,56 +61,60 @@ BIOMARCADORES VÁLIDOS (use nomes padronizados):
 - PROTEÍNAS TOTAIS, BILIRRUBINA TOTAL, BBD, BBI
 """
     
-    prompt = f"""Você é um extrator especializado de laudos laboratoriais. Analise o laudo e extraia TODOS os biomarcadores.
+    prompt = f"""Você é um extrator especializado de laudos laboratoriais brasileiros.
 
 ═══════════════════════════════════════
-REGRAS CRÍTICAS DE EXTRAÇÃO
+🎯 TAREFA: EXTRAIR VALORES DE TABELAS
 ═══════════════════════════════════════
 
-1. **FORMATO DE SAÍDA**: Retorne APENAS um array JSON válido. Nenhum texto antes ou depois.
+TABELAS VERTICAIS (90% dos casos brasileiros):
+┌────────────────────────┬────────────┐
+│ Valor de Referência    │ Resultado  │  ← EXTRAIA DESTA COLUNA
+├────────────────────────┼────────────┤
+│ 0 - 20 mm/h           │ 38,0 mm/h  │  → value: "38.0", unit: "mm/h"
+│ até 5 mg/L            │ 2,90 mg/L  │  → value: "2.90", unit: "mg/L"
+│ 70 - 99 mg/dL         │ 95 mg/dL   │  → value: "95", unit: "mg/dL"
+└────────────────────────┴────────────┘
 
-2. **VALIDAÇÕES OBRIGATÓRIAS**:
-   ❌ "Laboratório XYZ" NÃO é nome de pessoa
-   ❌ "Data de Nascimento" NÃO é data do exame
-   ❌ Ignore cabeçalhos, rodapés e informações administrativas
-   ✅ Extraia apenas valores de biomarcadores laboratoriais
+OPERADORES (valores não-detectáveis):
+│ Inferior a 8 UI/mL │  → value: "< 8", unit: "UI/mL"
+│ Superior a 1000    │  → value: "> 1000"
 
-3. **EXPANSÃO DE EXAMES COMPOSTOS** (CRÍTICO):
-   - Se encontrar "Hemograma Completo", extraia 13+ biomarcadores individuais:
-     Hemácias, Hemoglobina, Hematócrito, VCM, HCM, CHCM, RDW,
-     Leucócitos, Neutrófilos, Linfócitos, Monócitos, Eosinófilos, Basófilos, Plaquetas
-   
-   - Se encontrar "Lipidograma", extraia 5 biomarcadores:
-     Colesterol Total (CT), LDL, HDL, VLDL, Triglicérides (TG)
-   
-   - Se encontrar "Função Renal", extraia:
-     Creatinina, Ureia, TFG CKD-EPI, Ácido Úrico
-   
-   - Se encontrar "Função Hepática", extraia:
-     TGO/AST, TGP/ALT, GGT, Fosfatase Alcalina, Bilirrubinas, Albumina
+TABELAS HORIZONTAIS (10% dos casos):
+Glicemia de Jejum: 95 mg/dL (VR: 70-99)
+→ value: "95", unit: "mg/dL"
 
-4. **EXTRAÇÃO DE VALORES NUMÉRICOS**:
-   ✅ "95.5" → extraia "95.5"
-   ✅ "38.0 mm/h" → value: "38.0", unit: "mm/h"
-   ✅ "< 1.0" → extraia "< 1.0" (manter operadores)
-   ✅ "Positivo" ou "Negativo" → extraia como string
+═══════════════════════════════════════
+⚠️ REGRAS CRÍTICAS
+═══════════════════════════════════════
 
-5. **VALORES DE REFERÊNCIA**:
-   ✅ "10-50" → reference_min: "10", reference_max: "50"
-   ✅ "até 20" → reference_min: null, reference_max: "20"
-   ✅ ">= 30" → reference_min: "30", reference_max: null
-   ✅ Sempre extraia como strings, não como números
+1. **SEMPRE extraia o valor da coluna "Resultado"**
+2. **Converta vírgula → ponto**: "38,0" → "38.0"
+3. **Remova unidades do valor**: "95 mg/dL" → value: "95", unit: "mg/dL"
+4. **Preserve operadores**: "Inferior a X" → "< X", "Superior a X" → "> X"
+5. **Se não encontrar valor numérico, deixe campo vazio (não invente)**
+6. **Ignore cabeçalhos de tabela** (não são biomarcadores)
+7. **NUNCA extraia nomes de laboratórios ou cabeçalhos como biomarcadores**
 
-6. **STATUS DO EXAME**:
-   - Se valor estiver ABAIXO do normal → "baixo"
-   - Se valor estiver DENTRO do normal → "normal"
-   - Se valor estiver ACIMA do normal → "alto"
-   - Se não houver referência → "sem_referencia"
+═══════════════════════════════════════
+EXPANSÃO DE EXAMES COMPOSTOS
+═══════════════════════════════════════
+
+- **Hemograma Completo**: Extraia 13+ biomarcadores individuais:
+  Hemácias, Hemoglobina, Hematócrito, VCM, HCM, CHCM, RDW,
+  Leucócitos, Neutrófilos, Linfócitos, Monócitos, Eosinófilos, Basófilos, Plaquetas
+
+- **Lipidograma**: Extraia 5 biomarcadores:
+  CT (Colesterol Total), LDL, HDL, VLDL, TG (Triglicérides)
+
+- **Função Renal**: Creatinina, Ureia, TFG CKD-EPI, Ácido Úrico
+
+- **Função Hepática**: TGO/AST, TGP/ALT, GGT, Fosfatase Alcalina, Bilirrubinas, Albumina
 
 {valid_biomarkers}
 
 ═══════════════════════════════════════
-FORMATO JSON DE SAÍDA
+📋 FORMATO JSON (SOMENTE ISSO)
 ═══════════════════════════════════════
 
 [
@@ -121,7 +125,17 @@ FORMATO JSON DE SAÍDA
     "reference_min": "0",
     "reference_max": "20",
     "status": "alto",
-    "method": "Westergren",
+    "method": null,
+    "observation": null
+  }},
+  {{
+    "exam_name": "FATOR REUMATÓIDE",
+    "value": "< 8",
+    "unit": "UI/mL",
+    "reference_min": null,
+    "reference_max": "8",
+    "status": "normal",
+    "method": null,
     "observation": null
   }},
   {{
@@ -133,27 +147,17 @@ FORMATO JSON DE SAÍDA
     "status": "normal",
     "method": null,
     "observation": null
-  }},
-  {{
-    "exam_name": "HEMOGLOBINA",
-    "value": "14.2",
-    "unit": "g/dL",
-    "reference_min": "12.0",
-    "reference_max": "16.0",
-    "status": "normal",
-    "method": null,
-    "observation": null
   }}
 ]
 
 ═══════════════════════════════════════
-LAUDO A PROCESSAR
+📄 LAUDO A PROCESSAR
 ═══════════════════════════════════════
 
 {text[:12000]}
 
 ═══════════════════════════════════════
-RESPOSTA (SOMENTE JSON)
+✅ RESPOSTA (SOMENTE JSON, SEM TEXTO)
 ═══════════════════════════════════════"""
     
     try:

@@ -429,6 +429,47 @@ def process_exam_main(event: dict) -> dict:
         final = assign_biomarker_ids(deduped)
         logger.info(f"✅ Parsed {len(final)} biomarkers")
         
+        # ✅ CAMADA 2: FALLBACK COM REGEX para valores vazios
+        import re
+        
+        for exam in final:
+            # Se Claude não extraiu valor, tentar regex
+            if not exam.get('value') or str(exam.get('value')).strip() == '':
+                exam_name = exam.get('exam_name', '')
+                logger.warning(f"⚠️ Claude não extraiu valor para: {exam_name}")
+                
+                # Padrões de busca (ordem de prioridade)
+                patterns = [
+                    # Padrão 1: Tabela vertical - "Resultado | 38,0 mm/h"
+                    (rf"{re.escape(exam_name)}.*?Resultado.*?(\d+[,.]?\d*)\s*([a-zA-Z/%µ]+)", "vertical"),
+                    
+                    # Padrão 2: Linha horizontal - "VHS: 38,0 mm/h"
+                    (rf"{re.escape(exam_name)}\s*[:\|]\s*(\d+[,.]?\d*)\s*([a-zA-Z/%µ]+)", "horizontal"),
+                    
+                    # Padrão 3: Operadores - "Inferior a 8 UI/mL"
+                    (rf"{re.escape(exam_name)}.*?(Inferior|Superior)\s+a\s+(\d+[,.]?\d*)\s*([a-zA-Z/%µ]+)?", "operator"),
+                ]
+                
+                for pattern, pattern_type in patterns:
+                    match = re.search(pattern, extracted_text, re.IGNORECASE | re.DOTALL)
+                    if match:
+                        groups = match.groups()
+                        
+                        # Padrão 3 (operador)
+                        if pattern_type == "operator" and groups[0]:
+                            operator = "<" if "inferior" in groups[0].lower() else ">"
+                            exam['value'] = f"{operator} {groups[1].replace(',', '.')}"
+                            exam['unit'] = groups[2] if len(groups) > 2 and groups[2] else exam.get('unit')
+                            logger.info(f"✅ Regex extraiu (operador): {exam_name} = {exam['value']}")
+                            break
+                        
+                        # Padrões 1 e 2 (valor numérico)
+                        else:
+                            exam['value'] = groups[0].replace(',', '.')
+                            exam['unit'] = groups[1] if len(groups) > 1 else exam.get('unit')
+                            logger.info(f"✅ Regex extraiu ({pattern_type}): {exam_name} = {exam['value']} {exam['unit']}")
+                            break
+        
         # 9. Normalize biomarkers
         try:
             # Construir payload no formato correto
@@ -475,6 +516,18 @@ def process_exam_main(event: dict) -> dict:
             'timestamp': header_data.get('data_exame', ''),
             'patient_name': header_data.get('paciente', 'N/A')
         }
+        
+        # ✅ CAMADA 3: VALIDAÇÃO PRÉ-DYNAMODB - Logging detalhado
+        empty_values = [e for e in normalized if not e.get('value') or str(e.get('value')).strip() == '']
+        if empty_values:
+            logger.error(f"❌ {len(empty_values)}/{len(normalized)} biomarcadores SEM VALOR:")
+            for e in empty_values[:10]:  # Mostrar até 10
+                logger.error(f"  - {e.get('exam_name') or e.get('nome', 'UNKNOWN')} (original: {e.get('nome_original', 'N/A')})")
+            
+            # Estatísticas de falha
+            logger.warning(f"📊 Taxa de extração: {((len(normalized) - len(empty_values)) / len(normalized) * 100):.1f}% ({len(normalized) - len(empty_values)}/{len(normalized)})")
+        else:
+            logger.info(f"✅ 100% dos biomarcadores com valores extraídos ({len(normalized)})")
         
         table.put_item(Item=convert_floats_to_decimal(exam_result))
         logger.info(f"✅ Saved to DynamoDB")
