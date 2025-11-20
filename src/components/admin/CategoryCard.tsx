@@ -33,6 +33,7 @@ interface CategoryCardProps {
   onEditBiomarker: (oldName: string, newName: string) => void;
   onDeleteBiomarker: (name: string) => void;
   onAddBiomarker: (name: string) => void;
+  onChangeBiomarkerCategory?: (biomarkerName: string, newCategory: string) => void;
   defaultOpen?: boolean;
   dragHandleProps?: any;
 }
@@ -45,6 +46,7 @@ export function CategoryCard({
   onEditBiomarker,
   onDeleteBiomarker,
   onAddBiomarker,
+  onChangeBiomarkerCategory,
   defaultOpen = false,
   dragHandleProps,
 }: CategoryCardProps) {
@@ -110,8 +112,10 @@ export function CategoryCard({
                   id={biomarker.name}
                   name={biomarker.name}
                   hasOverride={biomarker.hasOverride}
+                  currentCategory={name}
                   onEdit={(oldName, newName) => onEditBiomarker(oldName, newName)}
                   onDelete={onDeleteBiomarker}
+                  onChangeCategory={onChangeBiomarkerCategory}
                 />
               ))}
             </SortableContext>

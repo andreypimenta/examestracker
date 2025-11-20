@@ -11,6 +11,7 @@ interface SortableCategoryCardProps {
   onEditBiomarker: (oldName: string, newName: string) => void;
   onDeleteBiomarker: (name: string) => void;
   onAddBiomarker: (biomarkerName: string) => void;
+  onChangeBiomarkerCategory?: (biomarkerName: string, newCategory: string) => void;
   defaultOpen?: boolean;
 }
 
