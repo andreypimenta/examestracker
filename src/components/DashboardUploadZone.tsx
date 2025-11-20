@@ -430,7 +430,7 @@ export const DashboardUploadZone = () => {
             <Button
               onClick={handleClearAll}
               variant="outline"
-              className="bg-zinc-900/50 backdrop-blur-sm border-zinc-800 text-white hover:bg-zinc-800/50 hover:text-white"
+              className="bg-zinc-900/50 backdrop-blur-sm border-zinc-800 text-white hover:bg-zinc-800/50 hover:text-white transition-all duration-200 ease-in-out hover:scale-[1.02] active:scale-[0.98]"
             >
               Cancelar
             </Button>
