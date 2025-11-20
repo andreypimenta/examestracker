@@ -61,9 +61,9 @@ export function BiomarkerChart({
   if (validData.length === 0) {
     return (
       <Card className="bg-white border border-gray-200 shadow-lg rounded-2xl overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-medical-purple to-medical-purple/90 text-white">
+        <CardHeader className="bg-gradient-to-r from-rest-blue to-rest-cyan text-white">
           <CardTitle className="text-2xl font-bold text-white">{biomarkerName}</CardTitle>
-          <CardDescription className="text-purple-100 text-base">
+          <CardDescription className="text-blue-100 text-base">
             Evolução ao longo do tempo {unit && `(${unit})`}
           </CardDescription>
         </CardHeader>
@@ -81,9 +81,9 @@ export function BiomarkerChart({
 
   return (
     <Card className="bg-white border border-gray-200 shadow-lg rounded-2xl overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-medical-purple to-medical-purple/90 text-white">
+      <CardHeader className="bg-gradient-to-r from-rest-blue to-rest-cyan text-white">
         <CardTitle className="text-2xl font-bold text-white">{biomarkerName}</CardTitle>
-        <CardDescription className="text-purple-100 text-base">
+        <CardDescription className="text-blue-100 text-base">
           Evolução ao longo do tempo {unit && `(${unit})`}
         </CardDescription>
       </CardHeader>
