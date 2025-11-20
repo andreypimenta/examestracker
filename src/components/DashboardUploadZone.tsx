@@ -404,7 +404,7 @@ export const DashboardUploadZone = () => {
 
             <div>
               <Label htmlFor="exam-date" className="text-white mb-2">
-                Data do Exame
+                Data do Processamento
               </Label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
