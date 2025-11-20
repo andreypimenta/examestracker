@@ -4,15 +4,30 @@ import { Button } from "@/components/ui/button";
 import exLogoFull from "@/assets/ex-logo-full.png";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user) {
-      navigate('/dashboard');
-    }
+    const checkFirstLogin = async () => {
+      if (!loading && user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_login_completed')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile && !profile.first_login_completed) {
+          navigate('/demo');
+        } else {
+          navigate('/dashboard');
+        }
+      }
+    };
+    
+    checkFirstLogin();
   }, [user, loading, navigate]);
 
   if (loading) {

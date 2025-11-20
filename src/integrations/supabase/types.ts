@@ -433,6 +433,7 @@ export type Database = {
         Row: {
           created_at: string | null
           crm: string | null
+          first_login_completed: boolean | null
           full_name: string
           id: string
           specialty: string | null
@@ -441,6 +442,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           crm?: string | null
+          first_login_completed?: boolean | null
           full_name: string
           id: string
           specialty?: string | null
@@ -449,6 +451,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           crm?: string | null
+          first_login_completed?: boolean | null
           full_name?: string
           id?: string
           specialty?: string | null
