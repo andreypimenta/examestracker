@@ -298,7 +298,7 @@ export const AuthenticatedNavbar = ({ showBackButton = false, backButtonPath = '
       <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
         <DialogContent className="bg-black/95 border-white/10 text-white">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-white">Entre em Contato</DialogTitle>
+            <DialogTitle className="text-2xl font-bold text-white text-center">Entre em Contato</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center gap-6 py-6">
             <div className="w-16 h-16 rounded-full bg-rest-blue/20 flex items-center justify-center">
