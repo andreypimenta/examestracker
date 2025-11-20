@@ -5,7 +5,7 @@ import { useAuth } from "./useAuth";
 export function useUserRole() {
   const { user } = useAuth();
 
-  const { data: roles, isLoading, isFetching, dataUpdatedAt } = useQuery({
+  const { data: roles, isLoading, isFetching, isFetched } = useQuery({
     queryKey: ["user-roles", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -28,15 +28,13 @@ export function useUserRole() {
       return userRoles;
     },
     enabled: !!user?.id,
-    staleTime: 0, // Não usar cache para evitar race condition
-    gcTime: 5 * 60 * 1000, // Cache em memória por 5 minutos
+    staleTime: 1000 * 60 * 5, // Cache por 5 minutos
+    gcTime: 1000 * 60 * 10, // Garbage collection após 10 minutos
   });
 
-  // Considerar loading se:
-  // 1. isLoading (primeira carga)
-  // 2. isFetching (recarga)
-  // 3. Usuário existe mas roles ainda undefined
-  const actuallyLoading = isLoading || isFetching || (!!user?.id && roles === undefined);
+  // Loading REAL: dados não foram carregados pelo menos uma vez OU está fetchando
+  // Se user existe mas ainda não fetched = está loading
+  const actuallyLoading = (!!user?.id && !isFetched) || isLoading || isFetching;
 
   const isAdmin = roles?.includes("admin") || false;
   const isProfessional = roles?.includes("professional") || false;
@@ -47,8 +45,9 @@ export function useUserRole() {
     isProfessional, 
     isLoading,
     isFetching,
+    isFetched,
     actuallyLoading,
-    dataUpdatedAt,
+    hasUser: !!user?.id,
     userId: user?.id 
   });
 
