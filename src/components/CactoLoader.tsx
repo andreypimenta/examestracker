@@ -22,23 +22,25 @@ export const CactoLoader = ({
   const filterStyles: Record<string, React.CSSProperties> = {
     default: {},
     blue: {
-      filter: "invert(1) sepia(1) saturate(5) hue-rotate(180deg) brightness(0.9)",
-      mixBlendMode: "screen",
+      filter: "saturate(0) brightness(0) invert(1) sepia(1) saturate(10000%) hue-rotate(180deg) brightness(0.8) contrast(1.2) drop-shadow(0 0 10px rgba(0, 120, 255, 0.8))",
+      mixBlendMode: "multiply",
     },
     cyan: {
-      filter: "invert(1) sepia(1) saturate(5) hue-rotate(160deg) brightness(1.1) drop-shadow(0 0 8px rgba(0, 240, 255, 0.6))",
-      mixBlendMode: "screen",
+      filter: "saturate(0) brightness(0) invert(1) sepia(1) saturate(10000%) hue-rotate(160deg) brightness(1) contrast(1.3) drop-shadow(0 0 12px rgba(0, 240, 255, 0.9))",
+      mixBlendMode: "multiply",
     }
   };
 
   return (
     <div className={`flex flex-col items-center gap-2 ${className}`}>
-      <img 
-        src={cactoGif} 
-        alt="Carregando" 
-        className={`${sizes[size]} object-contain`}
-        style={filterStyles[variant]}
-      />
+      <div style={{ isolation: "isolate" }} className="relative">
+        <img 
+          src={cactoGif} 
+          alt="Carregando" 
+          className={`${sizes[size]} object-contain`}
+          style={filterStyles[variant]}
+        />
+      </div>
       {text && (
         <p className="text-sm text-white/60 animate-pulse">{text}</p>
       )}
