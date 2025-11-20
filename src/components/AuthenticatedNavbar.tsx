@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, User, Home, Users, Shield, Bell } from "lucide-react";
+import { Menu, LogOut, User, Home, Users, Shield, Bell, Mail, Copy } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -11,6 +11,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
+import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface AuthenticatedNavbarProps {
   showBackButton?: boolean;
@@ -30,10 +33,16 @@ export const AuthenticatedNavbar = ({ showBackButton = false, backButtonPath = '
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const handleCopyEmail = () => {
+    navigator.clipboard.writeText("suporte@exames.co");
+    toast.success("Email copiado!");
   };
 
   const scrollToSection = (sectionId: string) => {
@@ -111,7 +120,7 @@ export const AuthenticatedNavbar = ({ showBackButton = false, backButtonPath = '
             Pacientes
           </Link>
           <button 
-            onClick={() => scrollToSection('contact')}
+            onClick={() => setContactDialogOpen(true)}
             className="font-medium text-white/80 hover:text-white transition-colors"
           >
             Contato
@@ -259,7 +268,8 @@ export const AuthenticatedNavbar = ({ showBackButton = false, backButtonPath = '
               <User className="mr-2 h-4 w-4" />
               Meu Perfil
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => scrollToSection('contact')} className="cursor-pointer hover:bg-white/10">
+            <DropdownMenuItem onClick={() => setContactDialogOpen(true)} className="cursor-pointer hover:bg-white/10">
+              <Mail className="mr-2 h-4 w-4" />
               Contato
             </DropdownMenuItem>
             
@@ -284,6 +294,30 @@ export const AuthenticatedNavbar = ({ showBackButton = false, backButtonPath = '
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
+        <DialogContent className="bg-black/95 border-white/10 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-white">Entre em Contato</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-6 py-6">
+            <div className="w-16 h-16 rounded-full bg-rest-blue/20 flex items-center justify-center">
+              <Mail className="w-8 h-8 text-rest-blue" />
+            </div>
+            <div className="text-center">
+              <p className="text-white/60 text-sm mb-2">Envie um email para:</p>
+              <p className="text-2xl font-bold text-white">suporte@exames.co</p>
+            </div>
+            <Button
+              onClick={handleCopyEmail}
+              className="bg-gradient-to-r from-rest-blue to-rest-cyan hover:from-rest-cyan hover:to-rest-blue text-white font-medium px-6"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Copiar Email
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 };
