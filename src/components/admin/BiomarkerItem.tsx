@@ -5,16 +5,20 @@ import { GripVertical, Edit2, Trash2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SIMPLIFIED_CATEGORIES, CATEGORY_DISPLAY_NAMES, SimplifiedCategory } from '@/utils/categoryMapping';
 
 interface BiomarkerItemProps {
   id: string;
   name: string;
   hasOverride: boolean;
+  currentCategory: string;
   onEdit: (oldName: string, newName: string) => void;
   onDelete: (name: string) => void;
+  onChangeCategory?: (biomarkerName: string, newCategory: string) => void;
 }
 
-export function BiomarkerItem({ id, name, hasOverride, onEdit, onDelete }: BiomarkerItemProps) {
+export function BiomarkerItem({ id, name, hasOverride, currentCategory, onEdit, onDelete, onChangeCategory }: BiomarkerItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(name);
 
@@ -86,6 +90,21 @@ export function BiomarkerItem({ id, name, hasOverride, onEdit, onDelete }: Bioma
               Customizado
             </Badge>
           )}
+          <Select 
+            value={currentCategory}
+            onValueChange={(newCategory) => onChangeCategory?.(name, newCategory)}
+          >
+            <SelectTrigger className="w-[180px] h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SIMPLIFIED_CATEGORIES.map(cat => (
+                <SelectItem key={cat} value={cat}>
+                  {CATEGORY_DISPLAY_NAMES[cat as SimplifiedCategory]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button
             size="icon"
             variant="ghost"

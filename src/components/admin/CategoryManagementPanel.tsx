@@ -220,6 +220,7 @@ export function CategoryManagementPanel() {
               onEditBiomarker={(oldName, newName) => updateBiomarkerName(oldName, newName, category.name)}
               onDeleteBiomarker={removeBiomarker}
               onAddBiomarker={(biomarkerName) => addBiomarker(biomarkerName, category.name)}
+              onChangeBiomarkerCategory={moveBiomarker}
               defaultOpen={searchQuery.length > 0}
             />
           ))}
@@ -245,6 +246,7 @@ export function CategoryManagementPanel() {
                   onEditBiomarker={(oldName, newName) => updateBiomarkerName(oldName, newName, category.name)}
                   onDeleteBiomarker={removeBiomarker}
                   onAddBiomarker={(biomarkerName) => addBiomarker(biomarkerName, category.name)}
+                  onChangeBiomarkerCategory={moveBiomarker}
                 />
               ))}
             </div>
