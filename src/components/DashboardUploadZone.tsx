@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Switch } from "@/components/ui/switch";
 import { PatientMatchDialog } from "@/components/PatientMatchDialog";
+import { CactoLoader } from "@/components/CactoLoader";
 import {
   Command,
   CommandEmpty,
@@ -440,7 +441,11 @@ export const DashboardUploadZone = () => {
 
       {uploading && uploadQueue.length > 0 && (
         <div className="bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 p-8 space-y-4">
-          <h3 className="text-lg font-bold text-white">
+          <div className="flex flex-col items-center mb-6">
+            <CactoLoader size="md" text="Enviando e processando exames..." />
+          </div>
+          
+          <h3 className="text-lg font-bold text-white text-center">
             Processando {uploadQueue.length} exame{uploadQueue.length > 1 ? 's' : ''}...
           </h3>
 
