@@ -240,56 +240,34 @@ export function useExamUpload() {
   };
 
   const pollExamStatus = async (
-    userId: string, 
-    s3Key: string, 
+    userId: string,
+    s3Key: string,
     examId: string,
     onStatusUpdate?: (message: string, progress: number, status?: FileQueueItem['status']) => void
   ) => {
     const startTime = Date.now();
     let attempts = 0;
     let currentIntervalId: NodeJS.Timeout | null = null;
-
-    // 🧠 Função para calcular intervalo dinâmico
-    const getPollingInterval = (elapsedSeconds: number): number => {
-      if (elapsedSeconds < 10) return 5000;  // 5s - Lambda ainda iniciando
-      if (elapsedSeconds < 30) return 3000;  // 3s - processamento ativo
-      if (elapsedSeconds < 60) return 2000;  // 2s - próximo de concluir
-      if (elapsedSeconds < 120) return 3000; // 3s - documento grande
-      return 4000;                           // 4s - documento muito grande
-    };
-
-    // 🎯 Função para determinar qual fonte verificar
-    const getCheckSource = (elapsedSeconds: number): 'aws-only' | 'supabase-first' | 'supabase-only' => {
-      if (elapsedSeconds < 20) return 'aws-only';        // Webhook pode não ter chegado
-      if (elapsedSeconds < 90) return 'supabase-first';  // Webhook já deve ter chegado
-      return 'supabase-only';                            // Webhook já chegou ou Lambda timeout
-    };
+    let realtimeChannel: any = null;
 
     return new Promise<void>((resolve, reject) => {
-      const scheduleNextCheck = () => {
-        const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-        const nextInterval = getPollingInterval(elapsedSeconds);
-        
-        currentIntervalId = setTimeout(checkStatus, nextInterval);
+      // 🔄 Função para limpar recursos
+      const cleanup = () => {
+        if (currentIntervalId) {
+          clearTimeout(currentIntervalId);
+          currentIntervalId = null;
+        }
+        if (realtimeChannel) {
+          supabase.removeChannel(realtimeChannel);
+          realtimeChannel = null;
+        }
       };
 
-      const checkStatus = async () => {
-        attempts++;
-        const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-        
-        // Timeout de 5 minutos (300 segundos)
-        if (elapsedSeconds >= 300) {
-          console.log(`[Polling Inteligente] ⏱️ Timeout de 5 minutos atingido`);
-          if (currentIntervalId) clearTimeout(currentIntervalId);
-          onStatusUpdate?.("Processamento em background...", 95);
-          resolve();
-          return;
-        }
-        
-        // 📊 Progresso visual detalhado
+      // 📊 Função para atualizar progresso baseado no tempo
+      const updateProgress = (elapsedSeconds: number) => {
         let currentProgress = 50;
         let statusMsg = '';
-        
+
         if (elapsedSeconds < 10) {
           currentProgress = 50 + (elapsedSeconds / 10) * 10; // 50% -> 60%
           statusMsg = `Extraindo texto do documento... (${elapsedSeconds}s)`;
@@ -300,7 +278,7 @@ export function useExamUpload() {
           currentProgress = 80 + ((elapsedSeconds - 30) / 60) * 12; // 80% -> 92%
           const mins = Math.floor(elapsedSeconds / 60);
           const secs = elapsedSeconds % 60;
-          statusMsg = mins > 0 
+          statusMsg = mins > 0
             ? `Organizando biomarcadores... (${mins}min ${secs}s)`
             : `Organizando biomarcadores... (${elapsedSeconds}s)`;
         } else {
@@ -309,110 +287,132 @@ export function useExamUpload() {
           const secs = elapsedSeconds % 60;
           statusMsg = `Finalizando processamento... (${mins}min ${secs}s)`;
         }
-        
+
         setProgress(Math.min(currentProgress, 98));
         setStatus(statusMsg);
         onStatusUpdate?.(statusMsg, Math.min(currentProgress, 98), 'processing');
+      };
+
+      // 🚀 OTIMIZAÇÃO: Usar Supabase Realtime em vez de polling constante
+      console.log('[Realtime] 📡 Conectando ao Supabase Realtime...');
+
+      realtimeChannel = supabase
+        .channel(`exam-${examId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'exams',
+            filter: `id=eq.${examId}`
+          },
+          (payload) => {
+            const newRecord = payload.new as any;
+            const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+
+            console.log(`[Realtime] 🔔 Atualização recebida: status=${newRecord.processing_status} (${elapsedSeconds}s)`);
+
+            if (newRecord.processing_status === 'completed') {
+              const successMsg = newRecord.total_biomarkers
+                ? `✅ Concluído! ${newRecord.total_biomarkers} biomarcadores extraídos`
+                : '✅ Concluído!';
+
+              onStatusUpdate?.(successMsg, 100, 'completed');
+              setProgress(100);
+              setStatus(successMsg);
+
+              console.log(`[Realtime] ✅ Processamento concluído via Realtime (${elapsedSeconds}s)`);
+              cleanup();
+              resolve();
+            } else if (newRecord.processing_status === 'error') {
+              console.error(`[Realtime] ❌ Erro detectado via Realtime`);
+              cleanup();
+              reject(new Error('Erro no processamento do exame'));
+            }
+          }
+        )
+        .subscribe((status) => {
+          console.log(`[Realtime] Status da subscrição: ${status}`);
+        });
+
+      // ⏱️ Timer para atualização visual de progresso
+      const progressInterval = setInterval(() => {
+        const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+
+        // Timeout de 5 minutos
+        if (elapsedSeconds >= 300) {
+          console.log(`[Realtime] ⏱️ Timeout de 5 minutos atingido`);
+          clearInterval(progressInterval);
+          cleanup();
+          onStatusUpdate?.("Processamento em background...", 95);
+          resolve();
+          return;
+        }
+
+        updateProgress(elapsedSeconds);
+      }, 1000); // Atualiza progresso a cada 1 segundo
+
+      // 🔍 FALLBACK: Polling AWS apenas nos primeiros 20 segundos (caso webhook demore)
+      const checkAWS = async () => {
+        const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+
+        // Só verifica AWS nos primeiros 20 segundos
+        if (elapsedSeconds >= 20) {
+          console.log('[Realtime] ⏭️ Polling AWS encerrado, confiando apenas no Realtime');
+          if (currentIntervalId) clearTimeout(currentIntervalId);
+          return;
+        }
+
+        attempts++;
+        console.log(`[Realtime] 🔍 Polling AWS (tentativa ${attempts}, ${elapsedSeconds}s)`);
 
         try {
-          const checkSource = getCheckSource(elapsedSeconds);
-          console.log(`[Polling Inteligente] Tentativa ${attempts} (${elapsedSeconds}s) - Fonte: ${checkSource}`);
-          
-          // 🗄️ Verificar Supabase
-          if (checkSource === 'supabase-first' || checkSource === 'supabase-only') {
-            const { data: examData, error: examError } = await supabase
-              .from('exams')
-              .select('processing_status, total_biomarkers, patient_name_extracted')
-              .eq('id', examId)
-              .single();
-            
-            if (!examError && examData) {
-              console.log(`[Polling Inteligente] Status Supabase: ${examData.processing_status}`);
-              
-              if (examData.processing_status === 'completed') {
-                console.log(`[Polling Inteligente] ✅ Concluído via Supabase (${elapsedSeconds}s)`);
-                
-                const successMsg = examData.total_biomarkers 
-                  ? `✅ Concluído! ${examData.total_biomarkers} biomarcadores extraídos`
-                  : '✅ Concluído!';
-                
-                onStatusUpdate?.(successMsg, 100);
-                
-                if (currentIntervalId) clearTimeout(currentIntervalId);
-                resolve();
-                return;
-              }
-              
-              if (examData.processing_status === 'error') {
-                console.error(`[Polling Inteligente] ❌ Erro no Supabase`);
-                if (currentIntervalId) clearTimeout(currentIntervalId);
-                reject(new Error('Erro no processamento do exame'));
-                return;
-              }
+          const response = await fetch(`${EDGE_FUNCTION_URL}?userId=${userId}&s3Key=${encodeURIComponent(s3Key)}`, {
+            headers: {
+              "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             }
-            
-            // Se for 'supabase-only', não verificar AWS
-            if (checkSource === 'supabase-only') {
-              scheduleNextCheck();
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+
+            if (data.status === 'completed' && data.data) {
+              console.log(`[Realtime] ✅ Concluído via AWS antes do webhook (${elapsedSeconds}s)`);
+
+              const totalBiomarkers = data.data.metadata?.total_exames || data.data.total_exames || 0;
+              const successMsg = totalBiomarkers
+                ? `✅ Concluído! ${totalBiomarkers} biomarcadores extraídos`
+                : '✅ Concluído!';
+
+              onStatusUpdate?.(successMsg, 100, 'completed');
+              setProgress(100);
+              setStatus(successMsg);
+
+              clearInterval(progressInterval);
+              cleanup();
+              await syncExamToSupabase(examId, data);
+              resolve();
+              return;
+            } else if (data.status === 'failed') {
+              console.error(`[Realtime] ❌ AWS retornou 'failed'`);
+              clearInterval(progressInterval);
+              cleanup();
+              reject(new Error('Erro no processamento AWS'));
               return;
             }
           }
-          
-          // ☁️ Verificar AWS
-          if (checkSource === 'aws-only' || checkSource === 'supabase-first') {
-            console.log(`[Polling Inteligente] Verificando AWS...`);
-            
-            const response = await fetch(`${EDGE_FUNCTION_URL}?userId=${userId}&s3Key=${encodeURIComponent(s3Key)}`, {
-              headers: {
-                "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-              }
-            });
-            
-            if (response.ok) {
-              const data = await response.json();
-              console.log(`[Polling Inteligente] Status AWS:`, data.status);
-
-              if (data.status === 'completed' && data.data) {
-                console.log(`[Polling Inteligente] ✅ Concluído via AWS (${elapsedSeconds}s)`);
-                
-                const totalBiomarkers = data.data.metadata?.total_exames || data.data.total_exames || 0;
-                const successMsg = totalBiomarkers 
-                  ? `✅ Concluído! ${totalBiomarkers} biomarcadores extraídos`
-                  : '✅ Concluído!';
-                
-                onStatusUpdate?.(successMsg, 100);
-                
-                if (currentIntervalId) clearTimeout(currentIntervalId);
-                await syncExamToSupabase(examId, data);
-                resolve();
-                return;
-              } else if (data.status === 'failed') {
-                console.error(`[Polling Inteligente] ❌ AWS retornou 'failed'`);
-                if (currentIntervalId) clearTimeout(currentIntervalId);
-                reject(new Error('Erro no processamento AWS'));
-                return;
-              }
-            } else {
-              console.warn(`[Polling Inteligente] Erro na AWS (continuando...)`);
-            }
-          }
-
-          // Agendar próxima verificação
-          scheduleNextCheck();
         } catch (error) {
-          console.error(`[Polling Inteligente] Erro:`, error);
-          
-          if (elapsedSeconds >= 300) {
-            if (currentIntervalId) clearTimeout(currentIntervalId);
-            reject(error);
-          } else {
-            scheduleNextCheck();
-          }
+          console.warn(`[Realtime] ⚠️ Erro ao verificar AWS:`, error);
+        }
+
+        // Agendar próxima verificação (apenas se ainda estiver dentro dos 20s)
+        if (elapsedSeconds < 20) {
+          currentIntervalId = setTimeout(checkAWS, 5000); // Verifica AWS a cada 5s
         }
       };
 
-      // Iniciar primeira verificação
-      checkStatus();
+      // Iniciar verificação AWS (fallback para primeiros 20s)
+      checkAWS();
     });
   };
 
