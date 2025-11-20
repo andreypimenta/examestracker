@@ -19,7 +19,6 @@ import { Loader2 } from "lucide-react";
 const profileSchema = z.object({
   full_name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
   specialty: z.string().optional(),
-  crm: z.string().optional(),
 });
 
 const passwordSchema = z.object({
@@ -61,7 +60,6 @@ export default function Profile() {
     values: {
       full_name: profile?.full_name || "",
       specialty: profile?.specialty || "",
-      crm: profile?.crm || "",
     },
   });
 
@@ -81,7 +79,6 @@ export default function Profile() {
         .update({
           full_name: data.full_name,
           specialty: data.specialty,
-          crm: data.crm,
         })
         .eq("id", user?.id);
       
@@ -171,16 +168,6 @@ export default function Profile() {
                     id="specialty"
                     {...profileForm.register("specialty")}
                     placeholder="Ex: Cardiologia"
-                    className="bg-black/50 border-white/10 text-white"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="crm" className="text-white">CRM (Opcional)</Label>
-                  <Input
-                    id="crm"
-                    {...profileForm.register("crm")}
-                    placeholder="Ex: CRM/SP 123456"
                     className="bg-black/50 border-white/10 text-white"
                   />
                 </div>
