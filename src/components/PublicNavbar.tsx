@@ -41,10 +41,11 @@ export const PublicNavbar = ({ showOnlyBackButton = false }: PublicNavbarProps) 
         {showOnlyBackButton ? (
           <Button 
             onClick={() => navigate('/')}
-            className="bg-rest-blue text-white hover:bg-rest-cyan rounded-full px-6 transition-all duration-200 ease-in-out hover:scale-[1.02] active:scale-[0.98]"
+            variant="ghost"
+            size="icon"
+            className="bg-gradient-to-br from-rest-blue to-rest-cyan text-white hover:from-rest-cyan hover:to-rest-blue rounded-full w-10 h-10 transition-all duration-200 ease-in-out hover:scale-110"
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Voltar
+            <ArrowLeft className="w-5 h-5" />
           </Button>
         ) : (
           <>
