@@ -98,11 +98,17 @@ class BiomarkerNormalizationService:
         if spec_path is None:
             # Priorizar arquivo v2 reorganizado
             v2_path = Path(__file__).parent.parent / 'data' / 'biomarker-specification-v2.json'
-            if v2_path.exists():
-                spec_path = v2_path
-            else:
-                # Fallback para arquivo antigo
-                spec_path = Path(__file__).parent.parent.parent / 'especificacao_biomarcadores.json'
+            print(f"🔍 Procurando v2.json em: {v2_path.absolute()}")
+            print(f"🔍 Arquivo existe? {v2_path.exists()}")
+
+         if v2_path.exists():
+          spec_path = v2_path
+         print(f"✅ Usando v2.json: {v2_path}")
+         else:
+           # Fallback para arquivo antigo
+           old_path = Path(__file__).parent.parent.parent / 'especificacao_biomarcadores.json'
+           print(f"⚠️ v2.json não encontrado! Usando fallback: {old_path}")
+          spec_path = old_path 
         
         self.spec_path = Path(spec_path)
         self.spec_data = self._load_specification()
