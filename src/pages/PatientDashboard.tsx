@@ -9,7 +9,7 @@ import { BiomarkerTrackingTable } from '@/components/BiomarkerTrackingTable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { categorizeBiomarker } from '@/utils/biomarkerCategories';
 import { normalizeBiomarkerWithTable } from '@/utils/biomarkerNormalization';
-import { CATEGORY_DISPLAY_ORDER, BIOMARKER_DISPLAY_ORDER, getCategoryOrder, getBiomarkerOrder } from '@/utils/biomarkerDisplayOrder';
+// Ordenação agora vem do backend via category_order e biomarker_order
 import { isLeukocyteType } from '@/utils/leukocyteFormatter';
 
 /**
@@ -458,21 +458,17 @@ export default function PatientDashboard() {
 
       // Ordenar por categoria e depois por ordem específica ou nome
       biomarkers.sort((a, b) => {
-        // Primeiro, ordenar por categoria
+        // Primeiro, ordenar por categoria usando category_order do backend
         if (a.category !== b.category) {
-          const categoryOrderA = getCategoryOrder(a.category);
-          const categoryOrderB = getCategoryOrder(b.category);
-          if (categoryOrderA !== categoryOrderB) {
-            return categoryOrderA - categoryOrderB;
-          }
-          // Se não estão na ordem definida, usar alfabética
-          return a.category.localeCompare(b.category);
+          const categoryOrderA = a.category_order ?? 999;
+          const categoryOrderB = b.category_order ?? 999;
+          return categoryOrderA - categoryOrderB;
         }
-        
-        // Dentro da mesma categoria, usar ordem de exibição customizada
-        const biomarkerOrderA = getBiomarkerOrder(a.category, a.biomarker_name);
-        const biomarkerOrderB = getBiomarkerOrder(b.category, b.biomarker_name);
-        
+
+        // Dentro da mesma categoria, usar biomarker_order do backend
+        const biomarkerOrderA = a.biomarker_order ?? 999;
+        const biomarkerOrderB = b.biomarker_order ?? 999;
+
         if (biomarkerOrderA !== biomarkerOrderB) {
           return biomarkerOrderA - biomarkerOrderB;
         }

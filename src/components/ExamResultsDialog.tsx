@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, TrendingUp, TrendingDown, CheckCircle, Brain } from "lucide-react";
 import { categorizeBiomarker } from "@/utils/biomarkerCategories";
-import { getCategoryOrder, getBiomarkerOrder } from "@/utils/biomarkerDisplayOrder";
+// Ordenação agora vem do backend via category_order e biomarker_order
 import { useExamAnalysis } from "@/hooks/useExamAnalysis";
 import { ExamInsightsPanel } from "@/components/ExamInsightsPanel";
 import type { ExamWithInsights } from "@/types/exam-insights";
@@ -136,10 +136,10 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
       return acc;
     }, {} as Record<string, typeof filteredResults>);
     
-    // Ordenar categorias
+    // Ordenar categorias usando category_order do backend
     return Object.entries(grouped).sort((a, b) => {
-      const orderA = getCategoryOrder(a[0]);
-      const orderB = getCategoryOrder(b[0]);
+      const orderA = a[1][0]?.category_order ?? 999;
+      const orderB = b[1][0]?.category_order ?? 999;
       return orderA - orderB;
     });
   }, [filteredResults]);
@@ -332,8 +332,8 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
                           {/* Biomarcadores da categoria (ordenados) */}
                           {results
                             .sort((a, b) => {
-                              const orderA = getBiomarkerOrder(category, a.biomarker_name);
-                              const orderB = getBiomarkerOrder(category, b.biomarker_name);
+                              const orderA = a.biomarker_order ?? 999;
+                              const orderB = b.biomarker_order ?? 999;
                               return orderA - orderB;
                             })
                             .map((result) => (
