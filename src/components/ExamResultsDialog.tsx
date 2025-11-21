@@ -88,6 +88,16 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
         }
       }
 
+      // ✅ NOVO: Verificar se há categorias no raw_aws_response
+      const rawResponse = exam.raw_aws_response as any;
+      const categorias = rawResponse?.categorias || [];
+      
+      // Se houver categorias, usar estrutura nova. Senão, buscar do banco (fallback)
+      if (categorias.length > 0) {
+        return { exam, categorias, patientName };
+      }
+
+      // Fallback: buscar do banco antigo
       const { data: results, error: resultsError } = await supabase
         .from("exam_results")
         .select("*")
@@ -101,25 +111,43 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
     enabled: !!examId && open,
   });
 
-  const filteredResults = useMemo(() => {
+  // ✅ NOVO: Filtrar usando estrutura de categorias
+  const filteredCategories = useMemo(() => {
+    if (examData?.categorias) {
+      // Usar estrutura nova do backend
+      return examData.categorias
+        .map(categoria => ({
+          ...categoria,
+          biomarcadores: categoria.biomarcadores.filter((bio: any) => {
+            // Filtro de categoria
+            if (categoryFilter !== "all" && categoria.nome !== categoryFilter) return false;
+            
+            // Filtro de status
+            if (statusFilter === "normal" && bio.status !== "normal") return false;
+            if (statusFilter === "altered" && bio.status === "normal") return false;
+            
+            // Busca por nome
+            if (searchQuery && !bio.nome.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+            
+            return true;
+          })
+        }))
+        .filter(cat => cat.biomarcadores.length > 0);
+    }
+    
+    // Fallback: usar estrutura antiga
     if (!examData?.results) return [];
 
     return examData.results.filter((result) => {
-      // Filtro de categoria
       if (categoryFilter !== "all") {
         const resultCategory = getBiomarkerCategory(result.biomarker_name, result.category);
         if (resultCategory !== categoryFilter) return false;
       }
 
-      // Filtro de status
       if (statusFilter === "normal" && result.status !== "normal") return false;
       if (statusFilter === "altered" && result.status === "normal") return false;
 
-      // Busca por nome
-      if (
-        searchQuery &&
-        !result.biomarker_name.toLowerCase().includes(searchQuery.toLowerCase())
-      ) {
+      if (searchQuery && !result.biomarker_name.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
       }
 
@@ -127,22 +155,35 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
     });
   }, [examData, categoryFilter, statusFilter, searchQuery]);
 
-  // Agrupar resultados por categoria
+  // ✅ NOVO: Usar categorias já organizadas pelo backend
   const groupedResults = useMemo(() => {
-    const grouped = filteredResults.reduce((acc, result) => {
+    if (examData?.categorias) {
+      // Estrutura nova: já vem organizada
+      return filteredCategories.map(cat => [cat.nome, cat.biomarcadores]);
+    }
+    
+    // Fallback: agrupar manualmente
+    const grouped = filteredCategories.reduce((acc: any, result: any) => {
       const category = getBiomarkerCategory(result.biomarker_name, result.category);
       if (!acc[category]) acc[category] = [];
       acc[category].push(result);
       return acc;
-    }, {} as Record<string, typeof filteredResults>);
+    }, {});
     
-    // Ordenar categorias alfabeticamente
-    return Object.entries(grouped).sort((a, b) => {
-      return a[0].localeCompare(b[0]);
-    });
-  }, [filteredResults]);
+    return Object.entries(grouped).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [examData, filteredCategories]);
 
   const stats = useMemo(() => {
+    if (examData?.categorias) {
+      // Calcular stats da estrutura nova
+      const allBiomarkers = examData.categorias.flatMap((cat: any) => cat.biomarcadores);
+      return {
+        total: allBiomarkers.length,
+        normal: allBiomarkers.filter((b: any) => b.status === "normal").length,
+        altered: allBiomarkers.filter((b: any) => b.status !== "normal").length,
+      };
+    }
+    
     if (!examData?.results) return { total: 0, normal: 0, altered: 0 };
     
     return {
@@ -180,8 +221,11 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
     }
   };
 
-  // Extrair categorias únicas dos resultados
+  // Extrair categorias únicas
   const categories = useMemo(() => {
+    if (examData?.categorias) {
+      return examData.categorias.map((cat: any) => cat.nome);
+    }
     if (!examData?.results) return [];
     return Array.from(new Set(examData.results.map(r => getBiomarkerCategory(r.biomarker_name, r.category))));
   }, [examData]);
@@ -327,45 +371,53 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
                             </TableCell>
                           </TableRow>
                           
-                          {/* Biomarcadores da categoria (ordenados alfabeticamente) */}
-                          {results
-                            .sort((a, b) => a.biomarker_name.localeCompare(b.biomarker_name))
-                            .map((result) => (
-                              <TableRow key={result.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          {/* Biomarcadores da categoria */}
+                          {results.map((bio: any) => {
+                            // Detectar se é estrutura nova ou antiga
+                            const biomarkerName = bio.nome || bio.biomarker_name;
+                            const bioValue = bio.resultado || bio.value;
+                            const bioUnit = bio.unidade || bio.unit;
+                            const bioRefMin = bio.referencia_min ?? bio.reference_min;
+                            const bioRefMax = bio.referencia_max ?? bio.reference_max;
+                            const bioStatus = bio.status;
+                            const bioId = bio.id || `${category}-${biomarkerName}`;
+                            
+                            return (
+                              <TableRow key={bioId} className="border-b border-gray-100 hover:bg-gray-50">
                                 <TableCell className="py-4 px-6">
                                   <div className="flex flex-col">
                                     <span className="font-semibold text-gray-900">
-                                      {result.biomarker_name}
+                                      {biomarkerName}
                                     </span>
-                                    {result.unit && (
+                                    {bioUnit && (
                                       <span className="text-[10px] text-gray-500 font-normal">
-                                        ({result.unit})
+                                        ({bioUnit})
                                       </span>
                                     )}
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-right py-4 px-6">
                                   <span className="text-gray-900 font-mono">
-                                    {result.value}
+                                    {bioValue}
                                   </span>
                                 </TableCell>
                                 <TableCell className="text-right py-4 px-6">
                                   <span className={`font-mono text-sm ${
-                                    result.reference_min !== null && result.reference_max !== null
+                                    bioRefMin !== null && bioRefMax !== null
                                       ? 'text-gray-600'
                                       : 'text-gray-400 italic'
                                   }`}>
-                                    {result.reference_min !== null && result.reference_max !== null
-                                      ? `${result.reference_min} - ${result.reference_max}`
+                                    {bioRefMin !== null && bioRefMax !== null
+                                      ? `${bioRefMin} - ${bioRefMax}`
                                       : "N/A"}
                                   </span>
                                 </TableCell>
                                 <TableCell className="text-center py-4 px-6">
-                                  {getStatusBadge(result.status)}
+                                  {getStatusBadge(bioStatus)}
                                 </TableCell>
                               </TableRow>
-                            ))
-                          }
+                            );
+                          })}
                         </>
                       ))
                     )}
@@ -375,7 +427,7 @@ export function ExamResultsDialog({ open, onOpenChange, examId }: ExamResultsDia
             </div>
 
             <div className="text-xs text-gray-600 text-center py-3 border-t border-gray-100">
-              Mostrando {filteredResults.length} de {stats.total} biomarcadores
+              Mostrando {groupedResults.reduce((acc, [_, bios]) => acc + bios.length, 0)} de {stats.total} biomarcadores
             </div>
           </TabsContent>
 
