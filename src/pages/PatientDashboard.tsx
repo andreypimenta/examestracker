@@ -108,7 +108,6 @@ export default function PatientDashboard() {
       // ✅ FASE 2: Processar exames com estrutura categorias[]
       const biomarkerMap = new Map<string, any>();
       const examDatesSet = new Set<string>();
-      const leukocytesByDate = new Map<string, Map<string, { absolute: any, percent: any }>>();
 
       // Lista de biomarcadores excluídos (cabeçalhos)
       const EXCLUDED_BIOMARKERS = [
@@ -245,31 +244,6 @@ export default function PatientDashboard() {
         // Usar serviço centralizado para obter categoria
         const category = getBiomarkerCategory(originalName, result.category);
 
-        // Detectar se é leucócito para consolidar por data
-        const isLeukocyte = isLeukocyteType(originalName);
-        
-        if (isLeukocyte) {
-          // Criar chave única por data e biomarcador
-          const dateKey = examDate || examId;
-          if (!leukocytesByDate.has(dateKey)) {
-            leukocytesByDate.set(dateKey, new Map());
-          }
-          const dateMap = leukocytesByDate.get(dateKey)!;
-          
-          if (!dateMap.has(finalKey)) {
-            dateMap.set(finalKey, { absolute: null, percent: null });
-          }
-          
-          const leukocyteData = dateMap.get(finalKey)!;
-          
-          // Armazenar valor absoluto ou percentual
-          if (result.unit === '%') {
-            leukocyteData.percent = result;
-          } else if (result.unit === '/mm³' || result.unit === 'mil/mm³' || result.unit === '/µL') {
-            leukocyteData.absolute = result;
-          }
-        }
-
         // Se biomarcador não existe, criar entrada
         if (!biomarkerMap.has(finalKey)) {
           biomarkerMap.set(finalKey, {
@@ -315,122 +289,121 @@ export default function PatientDashboard() {
 
         const biomarkerData = biomarkerMap.get(finalKey)!;
         
-        // Para não-leucócitos ou casos onde não consolidamos, adicionar diretamente
-        if (!isLeukocyte) {
-          if (!biomarkerData.values.has(examId)) {
-            biomarkerData.values.set(examId, {
-              result_id: result.id,
-              exam_id: examId,
-              exam_date: examDate,
-              value: result.value,
-              value_numeric: result.value_numeric,
-              status: result.status,
-              manually_corrected: result.manually_corrected || false,
-            });
-          }
+        // Adicionar valor do resultado
+        if (!biomarkerData.values.has(examId)) {
+          biomarkerData.values.set(examId, {
+            result_id: result.id,
+            exam_id: examId,
+            exam_date: examDate,
+            value: result.value,
+            value_numeric: result.value_numeric,
+            status: result.status,
+            manually_corrected: result.manually_corrected || false,
+          });
         }
       });
         }
       }
+
+      console.log('✅ [PatientDashboard] Total biomarcadores após processamento:', biomarkerMap.size);
+
+      console.log('✅ [PatientDashboard] Total biomarcadores após processamento:', biomarkerMap.size);
+
+      // ✅ FASE 3: Consolidação Inteligente de Leucócitos
+      console.log('🔬 [Leucócitos] Iniciando consolidação inteligente...');
       
-      // Segunda passagem: consolidar leucócitos por data E calcular valores absolutos faltantes
-      leukocytesByDate.forEach((dateMap, dateKey) => {
-        // 1️⃣ Buscar contagem de leucócitos para esta data (busca robusta)
-        let totalLeukocytes: number | null = null;
-        
-        // Tentar múltiplas variações de "leucócitos"
+      // 1. Buscar contagem total de leucócitos (necessário para cálculos)
+      const getTotalLeukocytesForExam = (examId: string): number | null => {
         const possibleKeys = ['leucocitos', 'leucocitos global', 'leucócitos', 'leucócitos global'];
         
         for (const key of possibleKeys) {
           const leukocytesInfo = biomarkerMap.get(key);
+          if (!leukocytesInfo) continue;
           
-          if (leukocytesInfo) {
-            for (const [examId, valueData] of leukocytesInfo.values) {
-              const examDate = valueData.exam_date;
-              const valueExamKey = examDate || examId;
-              
-              // Buscar por dateKey E aceitar value se value_numeric for null
-              if (valueExamKey === dateKey) {
-                const rawValue = valueData.value_numeric || valueData.value;
-                if (rawValue) {
-                  totalLeukocytes = Number(rawValue);
-                  if (!isNaN(totalLeukocytes) && totalLeukocytes > 0) {
-                    break; // Encontrou valor válido
-                  }
-                }
-              }
+          const examValue = leukocytesInfo.values.get(examId);
+          if (examValue) {
+            const rawValue = examValue.value_numeric || examValue.value;
+            const numValue = Number(rawValue);
+            if (!isNaN(numValue) && numValue > 0) {
+              return numValue;
             }
-            
-            if (totalLeukocytes && totalLeukocytes > 0) break; // Encontrou, sair do loop externo
           }
         }
-        
-        // Debug: Log se encontrou leucócitos
-        console.log('🔍 [DEBUG] dateKey:', dateKey, '| totalLeukocytes:', totalLeukocytes);
-        
-        // 2️⃣ Se não encontrou leucócitos, pular
-        if (!totalLeukocytes || totalLeukocytes <= 0) return;
-        
-        // 2️⃣ Consolidar cada tipo de leucócito
-        dateMap.forEach((leukocyteData, biomarkerKey) => {
-          const biomarkerInfo = biomarkerMap.get(biomarkerKey);
-          if (!biomarkerInfo) return;
-          
-          const { absolute, percent } = leukocyteData;
-          
-          // 3️⃣ NOVO: Calcular valor absoluto se ausente
-          let calculatedAbsolute = absolute;
-          let originalPercent = percent; // ✅ Preservar percentual original
-          
-          if (!absolute && percent && totalLeukocytes) {
-            const percentValue = Number(percent.value_numeric || percent.value);
+        return null;
+      };
+
+      // 2. Processar cada biomarcador leucócito
+      biomarkerMap.forEach((biomarkerData, key) => {
+        if (!isLeukocyteType(biomarkerData.biomarker_name)) return;
+
+        console.log('🔬 [Leucócito]', biomarkerData.biomarker_name);
+
+        // 3. Para cada valor de exame deste leucócito
+        const consolidatedValues = new Map();
+
+        biomarkerData.values.forEach((valueData: any, examId: string) => {
+          const unit = valueData.unit || biomarkerData.unit;
+          const isPercent = unit === '%';
+          const isAbsolute = unit === '/mm³' || unit === 'mil/mm³' || unit === '/µL' || unit === 'células/mm³';
+
+          // Já foi consolidado?
+          if (valueData.value && typeof valueData.value === 'string' && valueData.value.includes('(') && valueData.value.includes('%')) {
+            console.log('  ✅ Já consolidado:', valueData.value);
+            consolidatedValues.set(examId, valueData);
+            return;
+          }
+
+          let finalValue = valueData.value;
+          let finalValueNumeric = valueData.value_numeric;
+          let finalUnit = unit;
+          let percentValue = valueData.percentValue;
+
+          // CENÁRIO 1: Tem apenas porcentagem - precisa calcular absoluto
+          if (isPercent) {
+            const totalLeukocytes = getTotalLeukocytesForExam(examId);
             
-            if (!isNaN(percentValue) && percentValue >= 0) {
-              const absoluteValue = Math.round((percentValue / 100) * totalLeukocytes);
-              
-              console.log('✅ [CALC]', biomarkerKey, ':', percentValue, '% ×', totalLeukocytes, '=', absoluteValue);
-              
-              // ✅ FIX: Criar objeto simplificado (não copiar toda estrutura de percent)
-              calculatedAbsolute = {
-                id: percent.id,
-                exam_id: percent.exams.id,  // ✅ Extrair diretamente
-                exam_date: percent.exams.exam_date || percent.exams.created_at,  // ✅ Extrair diretamente
-                value: String(absoluteValue),
-                value_numeric: absoluteValue,
-                unit: '/mm³',
-                status: percent.status,
-                manually_corrected: percent.manually_corrected || false,
-                exams: percent.exams  // Manter para compatibilidade
-              };
+            if (totalLeukocytes) {
+              const percentNum = Number(valueData.value_numeric || valueData.value);
+              if (!isNaN(percentNum)) {
+                const absoluteValue = Math.round((percentNum / 100) * totalLeukocytes);
+                
+                // Consolidar: "4903 (63.1%)"
+                finalValue = `${absoluteValue} (${percentNum}%)`;
+                finalValueNumeric = absoluteValue;
+                finalUnit = '/mm³';
+                percentValue = percentNum;
+
+                console.log('  📊 Calculado:', percentNum, '% ×', totalLeukocytes, '=', absoluteValue);
+              }
+            } else {
+              console.warn('  ⚠️ Sem leucócitos totais para calcular absoluto');
             }
           }
           
-          // 4️⃣ Priorizar valor absoluto (calculado ou original)
-          const primaryResult = calculatedAbsolute || percent;
-          if (!primaryResult) return;
-          
-          // ✅ FIX: Usar campos já extraídos do calculatedAbsolute
-          const examId = primaryResult.exam_id || primaryResult.exams?.id;
-          const examDate = primaryResult.exam_date || primaryResult.exams?.exam_date || primaryResult.exams?.created_at;
-          
-          // Adicionar valor consolidado
-          biomarkerInfo.values.set(examId, {
-            result_id: primaryResult.id,
-            exam_id: examId,
-            exam_date: examDate,
-            value: primaryResult.value,
-            value_numeric: primaryResult.value_numeric,
-            percentValue: originalPercent ? (originalPercent.value_numeric || originalPercent.value) : null,
-            status: primaryResult.status,
-            manually_corrected: primaryResult.manually_corrected || false,
-          });
-          
-          // Forçar unidade para /mm³ se houver valor absoluto
-          if (calculatedAbsolute) {
-            biomarkerInfo.unit = '/mm³';
+          // CENÁRIO 2: Tem apenas valor absoluto - manter como está
+          else if (isAbsolute) {
+            console.log('  ✅ Já absoluto:', finalValue, finalUnit);
           }
+
+          // Atualizar valor consolidado
+          consolidatedValues.set(examId, {
+            ...valueData,
+            value: finalValue,
+            value_numeric: finalValueNumeric,
+            unit: finalUnit,
+            percentValue: percentValue
+          });
         });
+
+        // Atualizar o biomarkerMap com valores consolidados
+        biomarkerData.values = consolidatedValues;
+        if (consolidatedValues.size > 0) {
+          const firstValue = Array.from(consolidatedValues.values())[0];
+          biomarkerData.unit = firstValue.unit;
+        }
       });
+
+      console.log('✅ [Leucócitos] Consolidação concluída');
 
       // ✅ FASE 5: Converter Map para array e separar organizados de "Outros"
       const allBiomarkers = Array.from(biomarkerMap.values()).map(b => ({
